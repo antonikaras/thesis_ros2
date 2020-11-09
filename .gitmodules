@@ -1,0 +1,20 @@
+[submodule "docker-workspace/colcon_ws/src/turtlebot3/turtlebot3"]
+	path = docker-workspace/colcon_ws/src/turtlebot3/turtlebot3
+	url = https://github.com/ROBOTIS-GIT/turtlebot3.git
+	branch = foxy-devel
+[submodule "docker-workspace/colcon_ws/src/turtlebot3/turtlebot3_msgs"]
+	path = docker-workspace/colcon_ws/src/turtlebot3/turtlebot3_msgs
+	url = https://github.com/ROBOTIS-GIT/turtlebot3_msgs.git
+	branch = foxy-devel
+[submodule "docker-workspace/colcon_ws/src/turtlebot3/turtlebot3_simulations"]
+	path = docker-workspace/colcon_ws/src/turtlebot3/turtlebot3_simulations
+	url = https://github.com/ROBOTIS-GIT/turtlebot3_simulations.git
+	branch = foxy-devel
+[submodule "docker-workspace/colcon_ws/src/turtlebot3/DynamixelSDK"]
+	path = docker-workspace/colcon_ws/src/turtlebot3/DynamixelSDK
+	url = https://github.com/ROBOTIS-GIT/DynamixelSDK.git
+	branch = foxy-devel
+[submodule "docker-workspace/colcon_ws/src/turtlebot3/hls_lfcd_lds_driver"]
+	path = docker-workspace/colcon_ws/src/turtlebot3/hls_lfcd_lds_driver
+	url = https://github.com/ROBOTIS-GIT/hls_lfcd_lds_driver.git
+	branch = foxy-devel

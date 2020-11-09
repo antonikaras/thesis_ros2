@@ -1,1 +1,1 @@
-/workspace/colcon_ws/src/utils/DynamixelSDK/dynamixel_sdk/include/dynamixel_sdk/group_sync_read.h
+/workspace/colcon_ws/src/turtlebot3/DynamixelSDK/dynamixel_sdk/include/dynamixel_sdk/group_sync_read.h
