@@ -3,15 +3,7 @@
 ## Install the turtlebot3 packages
 
 ```
-cd docker-workspace
-mkdir -p colcon_ws/src
-cd colcon_ws
-wget https://raw.githubusercontent.com/ROBOTIS-GIT/turtlebot3/ros2/turtlebot3.repos
-```
-* Open the turtlebot3.repos file and change Git from ros2 to foxy-devel 
-```
-vcs import src < turtlebot3.repos
-colcon build --symlink-install
+git submodule update --init --recursive
 ```
 
 ## Build the docker image
@@ -35,4 +27,8 @@ bt-ws
 ```
 docker exec -it thesis_ros2-tester bash
 bt-ws
+```
+* Change the permissions on the colcon_ws
+```
+sudo chown -R $USER build/ install/ log/
 ```
