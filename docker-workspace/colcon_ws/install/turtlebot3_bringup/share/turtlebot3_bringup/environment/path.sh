@@ -1,1 +1,1 @@
-/opt/ros/foxy/share/ament_cmake_core/cmake/environment_hooks/environment/path.sh
+/opt/ros/dashing/share/ament_cmake_core/cmake/environment_hooks/environment/path.sh
