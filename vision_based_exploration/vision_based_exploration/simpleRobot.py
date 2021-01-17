@@ -57,27 +57,6 @@ class SimpleRobot(Node):
         rot_euler = rot.as_euler('xyz', degrees=True)
         self.pos[2] = rot_euler[2]
 
-    def GoToPos(self):
-        ''' Go to a desired pos @in : x, y, yaw '''
-        while True:
-          goal = PoseStamped()
-          goal.header.frame_id = 'map'
-          goal.header.stamp = self.get_clock().now().to_msg()
-
-          # Position part
-          goal.pose.position.x = self.tar_pos[0]
-          goal.pose.position.y = self.tar_pos[1]
-
-          # Orientation part
-          rot = Rotation.from_euler('xyz', [0.0, 0.0, self.tar_pos[2]])
-          quat = rot.as_quat()
-          goal.pose.orientation.x = quat[0]
-          goal.pose.orientation.y = quat[1]    
-          goal.pose.orientation.z = quat[2]
-          goal.pose.orientation.w = quat[3]
-
-          self.goalPose_pub.publish(goal)
-
     def _sendNavGoal(self):
         goal_msg = NavigateToPose.Goal()
 
