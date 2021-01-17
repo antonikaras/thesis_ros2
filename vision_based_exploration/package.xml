@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>thesis_ros2</name>
+  <name>vision_based_exploration</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="antonikaras1995@hotmail.com">antony</maintainer>
@@ -14,5 +14,9 @@
 
   <export>
     <build_type>ament_python</build_type>
+    <exec_depend>rclpy</exec_depend>
+    <exec_depend>geometry_msgs</exec_depend>
+    <exec_depend>nav_msgs</exec_depend>
+    <exec_depend>nav2_msgs</exec_depend>
   </export>
 </package>

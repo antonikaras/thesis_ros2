@@ -4,10 +4,11 @@
 
 * Terminal 1:
     ```
+    source /opt/ros/foxy/setup.bash
     cd ~/colcon_ws/
     colcon build --symlink-install
     src2
-    ros2 launch thesis_ros2 launch_turtlebot3_simulation.launch.py
+    ros2 launch vision_based_exploration launch_turtlebot3_simulation.launch.py
     ```
 * Publish goal to the navigation controller
     ```
