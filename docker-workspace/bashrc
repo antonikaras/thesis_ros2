@@ -1,9 +1,0 @@
-source /workspace/colcon_ws/install/setup.bash
-source /opt/ros/foxy/setup.bash
-
-alias src="source /workspace/colcon_ws/install/setup.bash"
-alias cd-ws="cd /workspace/colcon_ws"
-alias exp-mod="export TURTLEBOT3_MODEL=burger && export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:src/turtlebot3/turtlebot3_simulations/turtlebot3_gazebo/models"
-alias bt-ws="cd-ws && exp-mod && colcon build --symlink-install && src"
-
-alias killgazebo="pkill -9 gazebo & pkill -9 gzserver & pkill -9 gzclient & pkill -9 gazebo_gui"
