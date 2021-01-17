@@ -1,34 +1,15 @@
 # ROS2 turtlebot3 autonomous navigation
 
-## Install the turtlebot3 packages
+## Launch the simulation
 
-```
-git submodule update --init --recursive
-```
-
-## Build the docker image
-
-```
-docker build --tag thesis_ros2 . --rm
-```
-
-## Clean the <none> docker images
-```
-docker system prune
-```
-
-## Run the docker image
-* Terminal 1
-```
-./run-docker-image-gpu.sh
-bt-ws
-```
-* Terminal 2
-```
-docker exec -it thesis_ros2-tester bash
-bt-ws
-```
-* Change the permissions on the colcon_ws
-```
-sudo chown -R $USER build/ install/ log/
-```
+* Terminal 1:
+    ```
+    cd ~/colcon_ws/
+    colcon build --symlink-install
+    src2
+    ros2 launch thesis_ros2 launch_turtlebot3_simulation.launch.py
+    ```
+* Publish goal to the navigation controller
+    ```
+    ros2 topic pub /goal_pose geometry_msgs/PoseStamped "{header: {stamp: {sec: 0}, frame_id: 'map'}, pose: {position: {x: 0.2, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}"
+    ```

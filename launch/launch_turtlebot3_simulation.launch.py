@@ -42,7 +42,7 @@ def launch_setup(context, *args, **kwargs):
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument('use_sim_time', default_value='false'),
+        DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument('turtlebot3_model', default_value='burger'),
         DeclareLaunchArgument('world', default_value='house'),
         OpaqueFunction(function = launch_setup)
