@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'simpleRobot = vision_based_exploration.simpleRobot:main',
+            'frontierExplorationVision = vision_based_exploration.frontierExplorationVision:main',
         ],
     },
 )

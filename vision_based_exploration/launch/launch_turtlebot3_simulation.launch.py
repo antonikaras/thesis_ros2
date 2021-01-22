@@ -12,15 +12,15 @@ def launch_setup(context, *args, **kwargs):
     use_sim_time = LaunchConfiguration('use_sim_time')
     turtlebot3_model = LaunchConfiguration('turtlebot3_model').perform(context)
     world = LaunchConfiguration('world').perform(context)
-    world = 'turtlebot3_' + world + '.launch.py'
+    world = 'turtlebot3_new_house.launch.py'
 
     # Add the turtlebot3 model
     os.environ["TURTLEBOT3_MODEL"] = turtlebot3_model
 
     # Add the simulation world launch file
-    world_dir = get_package_share_directory('turtlebot3_gazebo')
+    world_dir = get_package_share_directory('vision_based_exploration')
     world_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(world_dir + '/launch/' + world),
+        PythonLaunchDescriptionSource(world_dir + '/' + world),
         launch_arguments={'use_sim_time': use_sim_time}.items()
     )
     
