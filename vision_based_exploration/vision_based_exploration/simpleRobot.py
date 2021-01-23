@@ -18,17 +18,24 @@ import sys
 import os
 import threading
 
+# Import autonomous exploration library
+from vision_based_exploration.autonomousExploration import AutonomousExploration
+
 
 class SimpleRobot(Node):
 
     def __init__(self):
         super().__init__('simple_robot')
-
+        
         # Initialize variables
         self.in_pos = []
         self.pos = [0.0] * 3
         self.tar_pos = [0.0] * 3
+        self.remaining_distance = 0.0
         qos = QoSProfile(depth=10)
+
+        # Initialize the autonomous exploration handler
+        self.AE = AutonomousExploration()
 
         # Create subscribers
         # /odom
@@ -39,7 +46,7 @@ class SimpleRobot(Node):
         self.goalPose_pub = self.create_publisher(PoseStamped, '/goal_pose', qos)
 
         # Create the navigation2 action client
-        self.actionClient = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.actionClient = ActionClient(self, NavigateToPose, 'navigate_to_pose', )
         self.actionClient.wait_for_server()
 
         # Read the keyboard inputs
@@ -56,6 +63,26 @@ class SimpleRobot(Node):
         rot = Rotation.from_quat(quat_df)
         rot_euler = rot.as_euler('xyz', degrees=True)
         self.pos[2] = rot_euler[2]
+
+    def _navGoalResponseCallback(self, future:rclpy.Future):
+        ''' Callback to process the request send to the navigtion2 action server '''
+        
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('Goal rejected :(')
+            return
+
+        self.get_logger().info('Goal accepted :)')
+
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self._navGoalResultCallback)
+
+    def _navGoalResultCallback(self, future:rclpy.Future):
+        result = future.result().result
+        self.get_logger().info('Result: {0}'.format(result.result))
+
+    def _navGoalFeedbackCallback(self, data):
+        self.remaining_distance = data.feedback.distance_remaining
 
     def _sendNavGoal(self):
         goal_msg = NavigateToPose.Goal()
@@ -79,8 +106,10 @@ class SimpleRobot(Node):
 
         goal_msg.pose = goal
 
-        return self.actionClient.send_goal_async(goal_msg)
+        future = self.actionClient.send_goal_async(goal_msg, feedback_callback = self._navGoalFeedbackCallback)
+        future.add_done_callback(self._navGoalResponseCallback)
 
+        return future
 
     def ReadInput(self):
         inp = input('Type your command > ')
@@ -94,8 +123,15 @@ class SimpleRobot(Node):
           y = float(inp[2])
           yaw = float(inp[3])
           self.tar_pos = [x, y, yaw]
-          #self.GoToPos()
           self._sendNavGoal()
+          #self.GoToPos()
+        elif inp[0] == 'status':
+            self.get_logger().info('Remaining distance: {0}'.format(self.remaining_distance))
+        elif inp[0] == 'explore':
+            if len(inp) == 3:
+                self.AE.Explore(max_steps = float(inp[2]))
+            else:
+                self.AE.Explore()
 
 
 def main(args=None):
@@ -116,8 +152,11 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
+        pass
+        '''
         print('Interrupted')
         try:
             sys.exit(0)
         except SystemExit:
             os._exit(0)
+        '''

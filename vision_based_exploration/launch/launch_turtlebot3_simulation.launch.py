@@ -5,7 +5,8 @@ from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, Opaq
 from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-    
+from launch_ros.actions import Node
+
 def launch_setup(context, *args, **kwargs):
 
     # Define input variables
@@ -38,7 +39,13 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments={'use_sim_time': use_sim_time}.items()
         )
     
-    return [world_launch, navigation2_launch, slam_toolbox_launch]
+    # Add the vision_based_frontier_detection
+    vision_based_frontier_detection = Node(package = 'vision_based_exploration',
+                                           namespace='vision_based_exploration',
+                                           executable='frontierExplorationVision',
+                                           name='frontierExplorationVision')
+
+    return [world_launch, navigation2_launch, slam_toolbox_launch, vision_based_frontier_detection]
 
 def generate_launch_description():
     return LaunchDescription([
