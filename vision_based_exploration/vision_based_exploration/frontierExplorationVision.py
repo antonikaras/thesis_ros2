@@ -179,10 +179,14 @@ def main(args=None):
 
 if __name__ == '__main__':
     try:
-        main()
+        while rclpy.ok():
+            main()
     except KeyboardInterrupt:
+        pass
+        '''
         print('Interrupted')
         try:
             sys.exit(0)
         except SystemExit:
             os._exit(0)
+        '''
