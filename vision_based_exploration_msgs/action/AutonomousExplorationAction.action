@@ -1,0 +1,12 @@
+int16 max_steps
+float32 time_out
+string method
+---
+# Result
+bool succeeded
+---
+# Feedback
+float32[] goal
+float32[] pos
+int16 goal_id
+float32 remaining_distance

@@ -41,11 +41,14 @@ def launch_setup(context, *args, **kwargs):
     
     # Add the vision_based_frontier_detection
     vision_based_frontier_detection = Node(package = 'vision_based_exploration',
-                                           namespace='vision_based_exploration',
-                                           executable='frontierExplorationVision',
-                                           name='frontierExplorationVision')
+                                           executable='frontierExplorationVision'
+                                           )
 
-    return [world_launch, navigation2_launch, slam_toolbox_launch, vision_based_frontier_detection]
+    # Add the autonomous_exploration action server
+    autonomous_exploration_action_server = Node(package='vision_based_exploration',
+                                                executable='autonomousExploration')
+
+    return [world_launch, navigation2_launch, slam_toolbox_launch, vision_based_frontier_detection, autonomous_exploration_action_server]
 
 def generate_launch_description():
     return LaunchDescription([
