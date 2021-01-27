@@ -10,6 +10,7 @@ from nav_msgs.msg import OccupancyGrid as OccG
 from nav_msgs.msg import MapMetaData as MMD
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
+from vision_based_exploration_msgs.action import AutonomousExplorationAction
 
 # Import other libraries
 import numpy as np
@@ -17,10 +18,6 @@ from scipy.spatial.transform import Rotation
 import sys
 import os
 import threading
-
-# Import autonomous exploration library
-from vision_based_exploration.autonomousExploration import AutonomousExploration
-
 
 class SimpleRobot(Node):
 
@@ -34,9 +31,6 @@ class SimpleRobot(Node):
         self.remaining_distance = 0.0
         qos = QoSProfile(depth=10)
 
-        # Initialize the autonomous exploration handler
-        self.AE = AutonomousExploration()
-
         # Create subscribers
         # /odom
         self.create_subscription(Odometry, 'odom', self._odomCallback, qos)
@@ -46,8 +40,12 @@ class SimpleRobot(Node):
         self.goalPose_pub = self.create_publisher(PoseStamped, '/goal_pose', qos)
 
         # Create the navigation2 action client
-        self.actionClient = ActionClient(self, NavigateToPose, 'navigate_to_pose', )
-        self.actionClient.wait_for_server()
+        self.nav2ActionClient = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.nav2ActionClient.wait_for_server()
+
+        # Create the autonomous exploration action client
+        self.aeActionClient = ActionClient(self, AutonomousExplorationAction, 'autonomous_exploration')
+        self.aeActionClient.wait_for_server()
 
         # Read the keyboard inputs
         self.create_timer(0.50, self.ReadInput)  # unit: s
@@ -106,10 +104,52 @@ class SimpleRobot(Node):
 
         goal_msg.pose = goal
 
-        future = self.actionClient.send_goal_async(goal_msg, feedback_callback = self._navGoalFeedbackCallback)
+        future = self.nav2ActionClient.send_goal_async(goal_msg, feedback_callback = self._navGoalFeedbackCallback)
         future.add_done_callback(self._navGoalResponseCallback)
 
         return future
+
+    def _aeGoalResponseCallback(self, future : rclpy.Future):
+        goal_handle = future.result()
+
+        # Goal wasn't accepted
+        if not goal_handle.accepted:
+            self.get_logger().info('Goal rejected :(')
+            #self.goal_sent = -1
+            return
+
+        # Goal was accepted
+        #self.goal_sent = 1
+        #self.get_logger().info('Goal accepted :)')
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self._aeGoalResultCallback)
+    
+    def _aeGoalResultCallback(self, future:rclpy.Future):
+        pass
+        result = future.result().result
+        self.get_logger().info('Result: {0}'.format(result.result))
+    
+    def _aeFeedbackCallback(self, data):
+        pass
+
+    def Explore(self, timeOut : float, maxSteps : int, method : str) -> bool:
+        ''' 
+            Function used to call the explore action
+            @timeout  : Used to avoid the recovery mode of the robot when stuck in a position 
+            @maxSteps : Maximum number of goals to explore
+            @method   : Frontier detection method to be used
+            @status   : Return value, False -> robot stuck, True -> maxSteps reached
+        '''
+
+        # Prepare the goal message
+        goal_msg = AutonomousExplorationAction.Goal()
+        goal_msg.max_steps = maxSteps
+        goal_msg.time_out = timeOut
+        goal_msg.method = method
+
+        # Send the goal message to the action server
+        future = self.aeActionClient.send_goal_async(goal_msg, feedback_callback = self._aeFeedbackCallback)
+        future.add_done_callback(self._aeGoalResponseCallback)
 
     def ReadInput(self):
         inp = input('Type your command > ')
@@ -128,10 +168,10 @@ class SimpleRobot(Node):
         elif inp[0] == 'status':
             self.get_logger().info('Remaining distance: {0}'.format(self.remaining_distance))
         elif inp[0] == 'explore':
-            if len(inp) == 3:
-                self.AE.Explore(max_steps = float(inp[2]))
+            if len(inp) == 2:
+                self.Explore(timeOut = 30.0, maxSteps = int(inp[1]), method = 'vis')
             else:
-                self.AE.Explore()
+                self.Explore(timeOut = 30.0, maxSteps = 50, method = 'vis')
 
 
 def main(args=None):
@@ -152,6 +192,7 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
+        rclpy.shutdown()
         pass
         '''
         print('Interrupted')

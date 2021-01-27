@@ -33,11 +33,12 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-# Define custom messages
+# Define custom messages, actions
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ExplorationTarget.msg"
   "msg/ExplorationTargets.msg"
+  "action/AutonomousExplorationAction.action"
  )
 
 ament_package()

@@ -87,7 +87,7 @@ class FrontierDetectionVision(Node):
         #print(areaOfInterest)
         #print(type(areaOfInterest))
         area = float(np.count_nonzero(areaOfInterest == -1))
-        areaNormalized = area / float(len(areaOfInterest) ** 2)
+        areaNormalized = area / float(len(areaOfInterest) ** 2 + 0.0001)
 
 
         return areaNormalized

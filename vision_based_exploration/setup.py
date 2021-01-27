@@ -25,6 +25,7 @@ setup(
         'console_scripts': [
             'simpleRobot = vision_based_exploration.simpleRobot:main',
             'frontierExplorationVision = vision_based_exploration.frontierExplorationVision:main',
+            'autonomousExploration = vision_based_exploration.autonomousExploration:main',
         ],
     },
 )
