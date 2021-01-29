@@ -3,6 +3,8 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient, ActionServer
 from rclpy.qos import QoSProfile
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 
 # Import message files
 from geometry_msgs.msg import PoseStamped
@@ -30,6 +32,9 @@ class AutonomousExploration(Node):
         # Range of the lidar
         self.LidarRange = 3.5
 
+        # Create callback group
+        self.callback_group = ReentrantCallbackGroup()
+
         # Initialize the variables
         self.in_pos = []
         self.pos = [0.0, 0.0, 0.0]
@@ -44,8 +49,9 @@ class AutonomousExploration(Node):
         self.goal_sent = 0
         self.remaining_distance = 0.0
         self.recovery_attempts = 0
+        self.stopThread = False
         qos = QoSProfile(depth=10)
-
+        
         # Setup rate
         self.rate = self.create_rate(2)
 
@@ -55,14 +61,14 @@ class AutonomousExploration(Node):
 
         # Setup subscribers
         ## /vision_based_frontier_detection/exploration_candidates
-        self.create_subscription(ExplorationTargets, '/vision_based_frontier_detection/exploration_candidates', self._explorationCandidatesVFCallback, qos)
+        self.create_subscription(ExplorationTargets, '/vision_based_frontier_detection/exploration_candidates', self._explorationCandidatesVFCallback, qos, callback_group=self.callback_group)
         ## /odom
-        self.create_subscription(Odometry, 'odom', self._odomCallback, qos)
+        self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.callback_group)
         ## /map
-        self.create_subscription(OccG, 'map', self._mapCallback, qos)
+        self.create_subscription(OccG, 'map', self._mapCallback, qos, callback_group=self.callback_group)
 
         # Create the action server
-        self.auto_explore_action_server = ActionServer(self, AutonomousExplorationAction, 'autonomous_exploration', self._aEActionCallback)
+        self.auto_explore_action_server = ActionServer(self, AutonomousExplorationAction, 'autonomous_exploration', self._aEActionCallback, callback_group=self.callback_group)
 
         self.get_logger().info('Autonomous explorer was initiated successfully')
 
@@ -243,6 +249,7 @@ class AutonomousExploration(Node):
         self.get_logger().info("max_steps = {}, timeOut = {}, method = ".format(max_steps, timeOut) + method)         
         
         # Call the explore function
+        ## Use a thread otherwise the callbacks won't work
         succeeded = self.Explore(timeOut, max_steps, method, goal)
 
         # Update the status of goal
@@ -361,19 +368,18 @@ def main(args=None):
     rclpy.init(args=args)
 
     AE = AutonomousExploration()
+    executor = MultiThreadedExecutor()
 
-    rclpy.spin(AE)
-    #rclpy.spin_until_future_complete(SR, )
+    try:
+        rclpy.spin(AE, executor)
+    except KeyboardInterrupt:
+        pass    #rclpy.spin_until_future_complete(SR, )
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    #SR.destroy_node()
+    AE.destroy_node()
     rclpy.shutdown()
 
 
 if __name__ == '__main__':
-    try:
-        #while rclpy.ok():
-        main()
-    except KeyboardInterrupt:
-        pass
+    main()

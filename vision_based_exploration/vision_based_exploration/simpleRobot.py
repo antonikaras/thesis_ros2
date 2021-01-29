@@ -179,25 +179,17 @@ def main(args=None):
 
     SR = SimpleRobot()
 
-    rclpy.spin(SR)
+    try:
+        rclpy.spin(SR)
+    except KeyboardInterrupt:
+        pass
     #rclpy.spin_until_future_complete(SR, )
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    #SR.destroy_node()
+    SR.destroy_node()
     rclpy.shutdown()
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        rclpy.shutdown()
-        pass
-        '''
-        print('Interrupted')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
-        '''
+    main()
