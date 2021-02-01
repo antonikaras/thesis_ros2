@@ -28,6 +28,7 @@ class SimpleRobot(Node):
         self.in_pos = []
         self.pos = [0.0] * 3
         self.tar_pos = [0.0] * 3
+        self.goal_id = 0
         self.remaining_distance = 0.0
         qos = QoSProfile(depth=10)
 
@@ -117,6 +118,8 @@ class SimpleRobot(Node):
             self.get_logger().info('Goal rejected :(')
             #self.goal_sent = -1
             return
+        
+        self.ae_goal_handle = goal_handle
 
         # Goal was accepted
         #self.goal_sent = 1
@@ -126,11 +129,13 @@ class SimpleRobot(Node):
     
     def _aeGoalResultCallback(self, future:rclpy.Future):
         pass
-        result = future.result().result
-        self.get_logger().info('Result: {0}'.format(result.result))
+        #result = future.result().result
+        #self.get_logger().info('Result: {0}'.format(result.result))
     
     def _aeFeedbackCallback(self, data):
-        pass
+        self.remaining_distance = data.feedback.remaining_distance
+        self.tar_pos = data.feedback.goal
+        self.goal_id = data.feedback.goal_id
 
     def Explore(self, timeOut : float, maxSteps : int, method : str) -> bool:
         ''' 
@@ -166,7 +171,11 @@ class SimpleRobot(Node):
           self._sendNavGoal()
           #self.GoToPos()
         elif inp[0] == 'status':
-            self.get_logger().info('Remaining distance: {0}'.format(self.remaining_distance))
+            self.get_logger().info('Remaining distance: {}'.format(self.remaining_distance))
+            self.get_logger().info('Target goal position: {}'.format(self.tar_pos))
+            self.get_logger().info('Goal id: {}'.format(self.goal_id))
+        elif inp[0] == 'cancel':
+            self.ae_goal_handle.cancel_goal_async()
         elif inp[0] == 'explore':
             if len(inp) == 2:
                 self.Explore(timeOut = 30.0, maxSteps = int(inp[1]), method = 'vis')

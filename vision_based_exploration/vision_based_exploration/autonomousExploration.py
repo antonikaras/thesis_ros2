@@ -1,7 +1,7 @@
 # Import ROS2 libraries
 import rclpy
 from rclpy.node import Node
-from rclpy.action import ActionClient, ActionServer
+from rclpy.action import ActionClient, ActionServer, GoalResponse, CancelResponse
 from rclpy.qos import QoSProfile
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
@@ -19,9 +19,7 @@ from vision_based_exploration_msgs.action import AutonomousExplorationAction
 # Import other libraries
 import numpy as np
 from scipy.spatial.transform import Rotation
-import sys
-import os
-import threading
+import time
 
 class AutonomousExploration(Node):
 
@@ -33,7 +31,10 @@ class AutonomousExploration(Node):
         self.LidarRange = 3.5
 
         # Create callback group
-        self.callback_group = ReentrantCallbackGroup()
+        ## Topic callback group
+        self.top_callback_group = ReentrantCallbackGroup()
+        ## Action callback group
+        self.act_callback_group = ReentrantCallbackGroup()
 
         # Initialize the variables
         self.in_pos = []
@@ -61,19 +62,23 @@ class AutonomousExploration(Node):
 
         # Setup subscribers
         ## /vision_based_frontier_detection/exploration_candidates
-        self.create_subscription(ExplorationTargets, '/vision_based_frontier_detection/exploration_candidates', self._explorationCandidatesVFCallback, qos, callback_group=self.callback_group)
+        self.create_subscription(ExplorationTargets, '/vision_based_frontier_detection/exploration_candidates', self._explorationCandidatesVFCallback, qos, callback_group=self.top_callback_group)
         ## /odom
-        self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.callback_group)
+        self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.top_callback_group)
         ## /map
-        self.create_subscription(OccG, 'map', self._mapCallback, qos, callback_group=self.callback_group)
+        self.create_subscription(OccG, 'map', self._mapCallback, qos, callback_group=self.top_callback_group)
 
         # Create the action server
-        self.auto_explore_action_server = ActionServer(self, AutonomousExplorationAction, 'autonomous_exploration', self._aEActionCallback, callback_group=self.callback_group)
+        self.auto_explore_action_server = ActionServer(self, AutonomousExplorationAction, 'autonomous_exploration', 
+                                                        execute_callback = self._aeActionCallback, 
+                                                        callback_group=self.act_callback_group, 
+                                                        cancel_callback = self._aeCancelCallback)
+        #                                                goal_callback = self._aeGoalCallback,
+                                                        
 
         self.get_logger().info('Autonomous explorer was initiated successfully')
 
     def _mapCallback(self, data:OccG):
-        self.get_logger().info('--*-- Map updated --*--')
         self.map = data.data
         self.map_width = data.info.width
         self.map_height = data.info.height
@@ -120,6 +125,8 @@ class AutonomousExploration(Node):
             self.goal_sent = -1
             return
 
+        self.nav_goal_handle = goal_handle
+
         # Goal was accepted
         self.goal_sent = 1
         #self.get_logger().info('Goal accepted :)')
@@ -129,7 +136,8 @@ class AutonomousExploration(Node):
     def _navGoalResultCallback(self, future:rclpy.Future):
         result = future.result().result
         self.target_explored = True
-        self.get_logger().info('Result: {0}'.format(result.result))
+        
+        self.get_logger().info('-- > Result: {0}, {}'.format(result.result, self.target_explored))
 
     def _navGoalFeedbackCallback(self, data):
         self.remaining_distance = data.feedback.distance_remaining
@@ -233,11 +241,16 @@ class AutonomousExploration(Node):
         if len(scores) == 0:
             return [float('inf')], 0
         
-        #self.get_logger().info('Target scores {}'.format(scores))
-
         return poss[np.argmax(scores)], max(scores)
 
-    def _aEActionCallback(self, goal):
+    def _aeGoalCallback(self, req):
+        pass
+
+    def _aeCancelCallback(self, req):
+        self.get_logger().info('Autonomous exploration received cancel request')
+        return CancelResponse.ACCEPT
+
+    async def _aeActionCallback(self, goal):
 
         self.get_logger().info('Autonomous explorer was called')
 
@@ -254,8 +267,10 @@ class AutonomousExploration(Node):
 
         # Update the status of goal
         if succeeded:
+            self.get_logger().info("Autonomous exploration succeeded")
             goal.succeed()
         else:
+            self.get_logger().info("Autonomous exploration failed")
             goal.failed()
         
         result = AutonomousExplorationAction.Result()
@@ -271,7 +286,7 @@ class AutonomousExploration(Node):
             @maxSteps : Maximum number of goals to explore
             @status : Return value, False -> robot stuck, True -> maxSteps reached
         '''
-        cnt = 0
+        cnt = 1
         finishedExploration = False
         stuck_cnt = 0
         previously_explored_cnt = 0
@@ -284,31 +299,34 @@ class AutonomousExploration(Node):
             #if goal.is_cancelling():
             #    self.get_logger().warn('Goal was cancelled')
             #    break
-            self.get_logger().info('-----> Explore 4 <-----')
-                      
+            
+            self.get_logger().info('--*-- < 1 > --*--')
+            self.get_logger().info('cnt {}'.format(cnt))
             cur_target, cur_score = self.PickTargets()  
-            self.get_logger().info('-----> Explore 5 <-----')
 
             if cur_target[0] == float('inf'):
                 finishedExploration = True
                 break
+            self.get_logger().info('--*-- < 2 > --*--')
             
             self.get_logger().info('Trying next target {}, score {}'.format(cur_target, cur_score))
             previously_explored = self._sendNavGoal([cur_target[0], cur_target[1], 0.0])
             if previously_explored:
                 previously_explored_cnt += 1
                 if previously_explored_cnt > 5:
-                    self.get_logger().warn('Manual control needed, exeeded number of previously explored point')
+                    self.get_logger().warn('Manual control needed, exeeded number of previously explored points')
                     break
-                self.rate.sleep()
             else:
                 previously_explored_cnt = 0
 
+            self.get_logger().info('--*-- < 3 > --*--')
+
             self.target_explored = False
             self.recovery_attempts = 0
+            cancel_goal = False
+            ts = time.time()
             # Check if the next target is more promissiong than the current one            
             while (rclpy.ok() and not previously_explored):
-                #self.get_logger().info('-----> Explore 9 <-----')    
                 # Create the action feedback
                 feedback_msg.goal = [float(cur_target[0]), float(cur_target[1]), 0.0]
                 feedback_msg.pos = self.pos
@@ -316,32 +334,36 @@ class AutonomousExploration(Node):
                 feedback_msg.remaining_distance = self.remaining_distance
                 goal.publish_feedback(feedback_msg)
                 
+                if time.time() - ts > 5.0:
+                    ts = time.time()
+                    self.get_logger().info('----> Action is active : {}'.format(goal.is_active))
                 # Check if the robot entered recovery mode too many times 
                 if self.recovery_attempts > 5:
                     self.get_logger().warn('Robot entered recovery mode too many times, cancelling goal')
-                    self.nav2_action_Client._cancel_goal_async()
+                    cancel_goal = True
                     break
-
+                
                 next_target, next_score = self.PickTargets()
                 cur_score = self.EvaluatePoint(cur_target)
-                #self.get_logger().info('Cur_score {}, next_score {}'.format(cur_score, next_score))
+
                 if cur_score > 0:
-                    if next_score / cur_score > 2.5:
+                    if next_score / cur_score > 5.0:
                         self.target_explored = True
-                else:
+                elif cur_score > -0.1:
                     self.target_explored = True
 
                 if self.target_explored:
-                    self.get_logger().info('Found better target {}, new score {}, currrent score {}'.format(next_target, next_score, cur_score))
-                    self.nav2_action_Client._cancel_goal_async()
-                    break
-                
-                #self.get_logger().info('-----> Explore 10 <-----')
-                
-                #self.rate.sleep()
-                
+                    self.get_logger().info('---*---> 3.5 <---*---')
 
-            self.get_logger().info('-----> Explore 11 <-----')
+                if self.target_explored and cnt < maxSteps:
+                    self.get_logger().info('Found better target {}, new score {}, currrent score {}'.format(next_target, next_score, cur_score))
+                    cancel_goal = True
+                    break
+            self.get_logger().info('--*-- < 4 > --*--')
+            
+            if cancel_goal:
+                self.nav_goal_handle.cancel_goal_async()
+                time.sleep(1)
 
             if self.target_explored:
                 stuck_cnt = 0
@@ -354,9 +376,9 @@ class AutonomousExploration(Node):
             else:
                 stuck_cnt = 0
                 self.get_logger().info("Reached target")
+            self.get_logger().info('--*-- < 5 > --*--')
             
-            self.get_logger().info('cnt {}'.format(cnt))
-            
+            cnt += 1
         # Return status
         status = finishedExploration
         if cnt == maxSteps:
