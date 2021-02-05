@@ -11,18 +11,19 @@ def launch_setup(context, *args, **kwargs):
 
     # Define input variables
     use_sim_time = LaunchConfiguration('use_sim_time')
+    gui = LaunchConfiguration('gui')
     turtlebot3_model = LaunchConfiguration('turtlebot3_model').perform(context)
+    mapping_package = LaunchConfiguration('mapping_package').perform(context)
     world = LaunchConfiguration('world').perform(context)
-    world = 'turtlebot3_new_house.launch.py'
 
     # Add the turtlebot3 model
     os.environ["TURTLEBOT3_MODEL"] = turtlebot3_model
 
     # Add the simulation world launch file
-    world_dir = get_package_share_directory('vision_based_exploration')
+    world_dir = get_package_share_directory('thesis_gazebo')
     world_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(world_dir + '/' + world),
-        launch_arguments={'use_sim_time': use_sim_time}.items()
+        PythonLaunchDescriptionSource(world_dir + '/launch/launch_simulation.launch.py'),
+        launch_arguments={'use_sim_time': use_sim_time, 'gui':gui, 'world':world}.items()
     )
     
     # Add the navigation2 launch file
@@ -33,12 +34,34 @@ def launch_setup(context, *args, **kwargs):
     ) 
 
     # Add the SLAM launch file
-    slam_toolbox_dir = get_package_share_directory('slam_toolbox')
-    slam_toolbox_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(slam_toolbox_dir + '/launch/online_async_launch.py'),
+    #slam_toolbox_dir = get_package_share_directory('slam_toolbox')
+    #slam_toolbox_launch = IncludeLaunchDescription(
+    #    PythonLaunchDescriptionSource(slam_toolbox_dir + '/launch/online_async_launch.py'),
+    #    launch_arguments={'use_sim_time': use_sim_time}.items()
+    #    )
+    slam_toolbox_launch = Node(
+        parameters=[
+          get_package_share_directory("vision_based_exploration") + '/config/mapper_params_online_async.yaml',
+          {'use_sim_time': use_sim_time}
+        ],
+        package='slam_toolbox',
+        executable='async_slam_toolbox_node',
+        name='slam_toolbox',
+        output='screen')
+
+    # Add the cartographer launch file
+    cartographer_dir = get_package_share_directory('vision_based_exploration')
+    cartographer_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(cartographer_dir + '/launch/turtlebot3_cartographer.launch.py'),
         launch_arguments={'use_sim_time': use_sim_time}.items()
         )
     
+    # Choose the mapping algorithm
+    if mapping_package == 'cartographer':
+        mapping_package_launch = cartographer_launch
+    else:
+        mapping_package_launch = slam_toolbox_launch
+
     # Add the vision_based_frontier_detection
     vision_based_frontier_detection = Node(package = 'vision_based_exploration',
                                            executable='frontierExplorationVision'
@@ -48,12 +71,14 @@ def launch_setup(context, *args, **kwargs):
     autonomous_exploration_action_server = Node(package='vision_based_exploration',
                                                 executable='autonomousExploration')
 
-    return [world_launch, navigation2_launch, slam_toolbox_launch, vision_based_frontier_detection, autonomous_exploration_action_server]
+    return [world_launch, navigation2_launch, vision_based_frontier_detection, autonomous_exploration_action_server, mapping_package_launch]
 
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument('turtlebot3_model', default_value='burger'),
-        DeclareLaunchArgument('world', default_value='house'),
+        DeclareLaunchArgument('world', default_value='burger_new_house'),
+        DeclareLaunchArgument('mapping_package', default_value='slam'),
+        DeclareLaunchArgument("gui", default_value="True", description="Launch Gazebo UI?"),
         OpaqueFunction(function = launch_setup)
         ])

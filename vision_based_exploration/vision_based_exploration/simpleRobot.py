@@ -118,7 +118,8 @@ class SimpleRobot(Node):
             self.get_logger().info('Goal rejected :(')
             #self.goal_sent = -1
             return
-        
+        else:
+            self.get_logger().info('Autonomous exploration goal accepted :)')
         self.ae_goal_handle = goal_handle
 
         # Goal was accepted
@@ -159,7 +160,9 @@ class SimpleRobot(Node):
     def ReadInput(self):
         inp = input('Type your command > ')
         inp = inp.split()
-        if inp[0] == 'exit':
+        if len(inp) == 0:
+            pass
+        elif inp[0] == 'exit':
           pass
         elif inp[0] == 'pos':
           print(self.pos)
@@ -178,9 +181,9 @@ class SimpleRobot(Node):
             self.ae_goal_handle.cancel_goal_async()
         elif inp[0] == 'explore':
             if len(inp) == 2:
-                self.Explore(timeOut = 30.0, maxSteps = int(inp[1]), method = 'vis')
+                self.Explore(timeOut = 5.0, maxSteps = int(inp[1]), method = 'vis')
             else:
-                self.Explore(timeOut = 30.0, maxSteps = 50, method = 'vis')
+                self.Explore(timeOut = 5.0, maxSteps = 50, method = 'vis')
 
 
 def main(args=None):
