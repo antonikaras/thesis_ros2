@@ -1,12 +1,16 @@
 # ROS2 turtlebot3 autonomous navigation
 
+## Gazebo environments
+
+* Gazebo environments from ```https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps.git``` were used
+
 ## Launch the simulation
 
 * Terminal 1:
     ```
     source /opt/ros/foxy/setup.bash
     cd ~/colcon_ws/
-    colcon build --symlink-install
+    colcon build --symlink-install --packages-select <package-name>
     src2
     ros2 launch vision_based_exploration launch_turtlebot3_simulation.launch.py
     ```
