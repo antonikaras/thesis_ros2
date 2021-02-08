@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(vision_based_exploration_msgs)
+project(autonomous_exploration_msgs)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -34,11 +34,9 @@ if(BUILD_TESTING)
 endif()
 
 # Define custom messages, actions
-
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ExplorationTarget.msg"
   "msg/ExplorationTargets.msg"
   "action/AutonomousExplorationAction.action"
  )
-
 ament_package()

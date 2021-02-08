@@ -14,6 +14,7 @@ def launch_setup(context, *args, **kwargs):
     gui = LaunchConfiguration('gui')
     turtlebot3_model = LaunchConfiguration('turtlebot3_model').perform(context)
     mapping_package = LaunchConfiguration('mapping_package').perform(context)
+    frontier_detection_method = LaunchConfiguration("frontier_detection_method").perform(context)
     world = LaunchConfiguration('world').perform(context)
 
     # Add the turtlebot3 model
@@ -34,14 +35,9 @@ def launch_setup(context, *args, **kwargs):
     ) 
 
     # Add the SLAM launch file
-    #slam_toolbox_dir = get_package_share_directory('slam_toolbox')
-    #slam_toolbox_launch = IncludeLaunchDescription(
-    #    PythonLaunchDescriptionSource(slam_toolbox_dir + '/launch/online_async_launch.py'),
-    #    launch_arguments={'use_sim_time': use_sim_time}.items()
-    #    )
     slam_toolbox_launch = Node(
         parameters=[
-          get_package_share_directory("vision_based_exploration") + '/config/mapper_params_online_async.yaml',
+          get_package_share_directory("autonomous_exploration") + '/mapper_params_online_async.yaml',
           {'use_sim_time': use_sim_time}
         ],
         package='slam_toolbox',
@@ -50,7 +46,7 @@ def launch_setup(context, *args, **kwargs):
         output='screen')
 
     # Add the cartographer launch file
-    cartographer_dir = get_package_share_directory('vision_based_exploration')
+    cartographer_dir = get_package_share_directory('autonomous_exploration')
     cartographer_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(cartographer_dir + '/launch/turtlebot3_cartographer.launch.py'),
         launch_arguments={'use_sim_time': use_sim_time}.items()
@@ -63,15 +59,20 @@ def launch_setup(context, *args, **kwargs):
         mapping_package_launch = slam_toolbox_launch
 
     # Add the vision_based_frontier_detection
-    vision_based_frontier_detection = Node(package = 'vision_based_exploration',
+    vision_based_frontier_detection = Node(package = 'frontier_detection_vision',
                                            executable='frontierExplorationVision'
                                            )
 
+    # Select the frontier detection method
+    frontier_detection = vision_based_frontier_detection
+    if frontier_detection_method == 'vision':
+        frontier_detection = vision_based_frontier_detection
+
     # Add the autonomous_exploration action server
-    autonomous_exploration_action_server = Node(package='vision_based_exploration',
+    autonomous_exploration_action_server = Node(package='autonomous_exploration',
                                                 executable='autonomousExploration')
 
-    return [world_launch, navigation2_launch, vision_based_frontier_detection, autonomous_exploration_action_server, mapping_package_launch]
+    return [world_launch, navigation2_launch, mapping_package_launch, frontier_detection, autonomous_exploration_action_server]
 
 def generate_launch_description():
     return LaunchDescription([
@@ -80,5 +81,6 @@ def generate_launch_description():
         DeclareLaunchArgument('world', default_value='burger_new_house'),
         DeclareLaunchArgument('mapping_package', default_value='slam'),
         DeclareLaunchArgument("gui", default_value="True", description="Launch Gazebo UI?"),
+        DeclareLaunchArgument("frontier_detection_method", default_value="vision"),
         OpaqueFunction(function = launch_setup)
         ])

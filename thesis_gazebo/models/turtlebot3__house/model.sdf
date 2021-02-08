@@ -1,5 +1,5 @@
 <sdf version='1.6'>
-  <model name='turtlebot3_house'>
+  <model name='turtlebot3__house'>
     <link name='Wall_101'>
       <pose frame=''>-0.05 3.1 0 0 0 -1.5708</pose>
       <self_collide>0</self_collide>
@@ -4181,6 +4181,7 @@
       </link>
       <pose frame=''>0.883462 -0.576236 0 0 0 -3.14159</pose>
     </model>
+    <!--
     <model name='bookshelf'>
       <static>1</static>
       <link name='link'>
@@ -5120,6 +5121,7 @@
       </link>
       <pose frame=''>-7.18363 1.24799 0 0 0 -1.5708</pose>
     </model>
+    -->
     <model name='cafe_table'>
       <static>1</static>
       <link name='link'>

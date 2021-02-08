@@ -2,7 +2,7 @@ from setuptools import setup
 import os
 from glob import glob
 
-package_name = 'vision_based_exploration'
+package_name = 'autonomous_exploration'
 
 setup(
     name=package_name,
@@ -13,6 +13,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name), glob('config/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -23,9 +24,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'simpleRobot = vision_based_exploration.simpleRobot:main',
-            'frontierExplorationVision = vision_based_exploration.frontierExplorationVision:main',
-            'autonomousExploration = vision_based_exploration.autonomousExploration:main',
+            'simpleRobot = autonomous_exploration.simpleRobot:main',
+            'autonomousExploration = autonomous_exploration.autonomousExploration:main',
         ],
     },
 )

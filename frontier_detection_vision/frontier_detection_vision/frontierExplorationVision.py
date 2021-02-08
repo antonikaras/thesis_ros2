@@ -12,7 +12,7 @@ from nav_msgs.msg import MapMetaData as MMD
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
 from sensor_msgs.msg import Image
-from vision_based_exploration_msgs.msg import ExplorationTargets, ExplorationTarget 
+from autonomous_exploration_msgs.msg import ExplorationTargets, ExplorationTarget 
 
 # Import other libraries
 import numpy as np

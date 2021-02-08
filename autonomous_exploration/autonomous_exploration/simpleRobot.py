@@ -10,7 +10,7 @@ from nav_msgs.msg import OccupancyGrid as OccG
 from nav_msgs.msg import MapMetaData as MMD
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
-from vision_based_exploration_msgs.action import AutonomousExplorationAction
+from autonomous_exploration_msgs.action import AutonomousExplorationAction
 
 # Import other libraries
 import numpy as np
