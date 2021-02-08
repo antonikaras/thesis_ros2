@@ -1,8 +1,20 @@
 # ROS2 turtlebot3 autonomous navigation
 
-## Gazebo environments
+## Project packages
 
-* Gazebo environments from ```https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps.git``` were used
+*   autonomous_exploration:
+    1. Contains the autonomous exploration action server
+    2. Handles the autonomous exploration using the new exploration targets detected by the specified frontier detection method
+        i. Currently only vision based frontier detection is implemented
+    3. Contains the simple robot api which is used to ease communication with the robot
+* autonomous_exploration_msgs:
+    1. Contains the message file definitions used by the frontier detection method
+    2. Contains the action file definitions used by the autonomous exploration action 
+* frontier_detectionvision:
+    1. Contains the vision based frontier detection algorithm
+* thesis_gazebo:
+    1. Contains the worlds and models used in the simulation
+    2. Gazebo environments from ```https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps.git``` were used
 
 ## Launch the simulation
 
@@ -12,7 +24,13 @@
     cd ~/colcon_ws/
     colcon build --symlink-install --packages-select <package-name>
     src2
-    ros2 launch vision_based_exploration launch_turtlebot3_simulation.launch.py
+    ros2 launch autonomous_exploration launch_turtlebot3_simulation.launch.py
+    ```
+* Terminal 2:
+    ```
+    cd ~/colcon_ws/
+    source install/setup.bash
+    ros2 launch autonomous_exploration simpleRobot
     ```
 * Publish goal to the navigation controller
     ```
