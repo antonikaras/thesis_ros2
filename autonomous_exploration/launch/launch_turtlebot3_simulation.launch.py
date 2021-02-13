@@ -72,7 +72,11 @@ def launch_setup(context, *args, **kwargs):
     autonomous_exploration_action_server = Node(package='autonomous_exploration',
                                                 executable='autonomousExploration')
 
-    return [world_launch, navigation2_launch, mapping_package_launch, frontier_detection, autonomous_exploration_action_server]
+    # Add the rosbridge_msgs publisher
+    rosbridge_msgs = Node(package='autonomous_exploration',
+                          executable='rosbridge_msgs_publisher')
+
+    return [world_launch, navigation2_launch, mapping_package_launch, frontier_detection, autonomous_exploration_action_server, rosbridge_msgs]
 
 def generate_launch_description():
     return LaunchDescription([

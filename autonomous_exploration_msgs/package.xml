@@ -17,6 +17,9 @@
   <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
+    <exec_depend>nav_msgs</exec_depend>
+    <exec_depend>nav2_msgs</exec_depend>
     <build_type>ament_cmake</build_type>
+      <ros1_bridge mapping_rules="params/mapping_rules.yaml"/>
   </export>
 </package>

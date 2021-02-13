@@ -10,6 +10,7 @@
 * autonomous_exploration_msgs:
     1. Contains the message file definitions used by the frontier detection method
     2. Contains the action file definitions used by the autonomous exploration action 
+    3. Contains the rosbridge_msgs used to connect ros2-ros-unity
 * frontier_detectionvision:
     1. Contains the vision based frontier detection algorithm
 * thesis_gazebo:
