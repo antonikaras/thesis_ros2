@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'simpleRobot = autonomous_exploration.simpleRobot:main',
             'autonomousExploration = autonomous_exploration.autonomousExploration:main',
+            'rosbridge_msgs_publisher = autonomous_exploration.rosbridge_msgs_publisher:main',
         ],
     },
 )

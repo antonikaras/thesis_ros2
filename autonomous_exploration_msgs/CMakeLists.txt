@@ -37,6 +37,13 @@ endif()
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ExplorationTarget.msg"
   "msg/ExplorationTargets.msg"
+  "msg/MapData.msg"
+  "msg/PosData.msg"
   "action/AutonomousExplorationAction.action"
  )
+
+ install(
+  FILES params/mapping_rules.yaml
+  DESTINATION share/${PROJECT_NAME}/params)
+
 ament_package()

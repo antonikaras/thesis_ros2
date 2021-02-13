@@ -1,5 +1,4 @@
 # Import ROS2 libraries
-from numpy import linalg
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient, ActionServer, GoalResponse, CancelResponse
@@ -14,8 +13,9 @@ from nav_msgs.msg import MapMetaData as MMD
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
 from sensor_msgs.msg import Image
-from autonomous_exploration_msgs.msg import ExplorationTargets, ExplorationTarget 
+from autonomous_exploration_msgs.msg import ExplorationTargets, ExplorationTarget
 from autonomous_exploration_msgs.action import AutonomousExplorationAction
+from geometry_msgs import msg
 
 # Import other libraries
 import numpy as np
@@ -80,13 +80,14 @@ class AutonomousExploration(Node):
         self.get_logger().info('Autonomous explorer was initiated successfully')
 
     def _mapCallback(self, data:OccG):
+
         self.map_width = data.info.width
         self.map_height = data.info.height
         self.map = np.array(data.data).reshape((self.map_height, self.map_width)).T
         self.map_resolution = data.info.resolution
         self.map_size = self.map_height * self.map_width    
         self.map_origin = np.array([data.info.origin.position.x, data.info.origin.position.y])  
-
+    
     def _odomCallback(self, msg:Odometry):
         ''' Odometry function callback'''
 
