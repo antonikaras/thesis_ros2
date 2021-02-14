@@ -2,7 +2,8 @@
 
 ## Description
 
-    This package contains the ROS2 packages needed to implement autonomous exploration using the turtlebot3 robot. Also using ros1_bridge it connect with the Unity game Engine in order to visualize the map and make it interactive.
+    This package contains the ROS2 packages needed to implement autonomous exploration using the turtlebot3 robot. 
+    Also using ros1_bridge it connect with the Unity game Engine in order to visualize the map and make it interactive.
 
 ## Dependencies
 
