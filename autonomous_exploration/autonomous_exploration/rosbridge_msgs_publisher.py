@@ -37,7 +37,7 @@ class RosbridgeMsgsPublisher(Node):
         ## /autonomous_exploration/map
         self.rosbridgeMap_pub = self.create_publisher(MapData, '/rosbridge_msgs_publisher/map', qos)
         ## /autonomous_exploration/position
-        self.rosbridgePos_pub = self.create_publisher(PosData, '/robot_pos', qos)
+        self.rosbridgePos_pub = self.create_publisher(PosData, '/rosbridge_msgs_publisher/robot_pos', qos)
 
 
         # Publish the rosbridge_msgs
