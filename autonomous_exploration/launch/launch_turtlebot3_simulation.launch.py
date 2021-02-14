@@ -75,8 +75,12 @@ def launch_setup(context, *args, **kwargs):
     # Add the rosbridge_msgs publisher
     rosbridge_msgs = Node(package='autonomous_exploration',
                           executable='rosbridge_msgs_publisher')
+    
+    # Start the ros1_bridge
+    rosbridge_launcher = Node(package='ros1_bridge',
+                          executable='parameter_bridge')
 
-    return [world_launch, navigation2_launch, mapping_package_launch, frontier_detection, autonomous_exploration_action_server, rosbridge_msgs]
+    return [world_launch, navigation2_launch, mapping_package_launch, frontier_detection, autonomous_exploration_action_server, rosbridge_msgs]#, rosbridge_launcher]
 
 def generate_launch_description():
     return LaunchDescription([
