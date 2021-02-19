@@ -2,7 +2,8 @@
 
 ## Description
 
-    This package contains the ROS2 packages needed to implement autonomous exploration using the turtlebot3 robot. Also using ros1_bridge it connect with the Unity game Engine in order to visualize the map and make it interactive.
+This package contains the ROS2 packages needed to implement autonomous exploration using the turtlebot3 robot. 
+Also using ros1_bridge it connect with the Unity game Engine in order to visualize the map and make it interactive.
 
 ## Dependencies
 
@@ -114,6 +115,7 @@ source devel/setup.bash
 instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
 * To send the new message to unity update the file *ros_unity/src/server_endpoint.py*, on the catkin_ws, by adding a new entry on the *tcp_server.start*
  part of the code
+<<<<<<< HEAD
 
 
 ## Configure Unity
@@ -126,3 +128,5 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
 
 * *AttributeError: type object 'type' has no attribute '_TYPE_SUPPORT' This might be a ROS 1 message type but it should be a ROS 2 message type. Make sure to source your ROS 2 workspace after your ROS 1 workspace.* 
     Solution : https://github.com/ros2/ros2/issues/451 
+=======
+>>>>>>> 1a65ad626d446ca38a78021091762217a26a1907
