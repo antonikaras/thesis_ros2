@@ -51,6 +51,7 @@ class FrontierDetectionVision(Node):
         self.explorationCandidates_pub = self.create_publisher(ExplorationTargets, '/vision_based_frontier_detection/exploration_candidates', qos)
         # /vision_based_frontier_detection/exploration_candidates
         self.map_image_pub = self.create_publisher(Image, '/vision_based_frontier_detection/map_image_pub', qos)
+        self.map_image_pub_ = self.create_publisher(Image, '/vision_based_frontier_detection/map_image_pub_', qos)
         
 
         self.get_logger().info("Vision based frontier detector has started")
@@ -65,6 +66,7 @@ class FrontierDetectionVision(Node):
 
         # Generate new targets
         targets = self.DetectFrontiers()
+        #self.ConvertMap()
         msg = ExplorationTargets()
         #msg.header.seq = self.seq
         #msg.header.stamp = rospy.Time.now()
@@ -122,7 +124,7 @@ class FrontierDetectionVision(Node):
         # Convert the 2D map to image
         # -1:unknown, 0:free, 100:obstacle 
         map = np.array(self.map).reshape((self.map_height, self.map_width)).T
-
+        
         # Detect the obstacles
         obstacles = np.zeros_like(map)
         obstacles[map == 100] = 255
@@ -162,6 +164,29 @@ class FrontierDetectionVision(Node):
 
         return clSpecs
 
+    def ConvertMap(self):
+        
+        map_img = np.zeros((self.map_height, self.map_width))
+        for cnt in range(self.map_size):
+            i = int(cnt / self.map_width)
+            j = int(cnt - i * self.map_width)
+
+            val = 255
+            map_val = self.map[cnt]
+
+            if map_val == -1:
+                val = 100
+            elif map_val == 100:
+                val = 0
+
+            map_img[i][j] = map_val
+
+        map_img = map_img.astype(np.uint8)
+        #self.get_logger().info("---> {}, {}".format(map_img.shape, type(map_img)))
+
+        #map_img = cv.UMat.get(map_img)
+
+        self.map_image_pub_.publish(self.bridge.cv2_to_imgmsg(map_img.T, 'mono8'))
         #return None
 ###################################################################################################
 def main(args=None):
