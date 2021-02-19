@@ -114,3 +114,15 @@ source devel/setup.bash
 instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
 * To send the new message to unity update the file *ros_unity/src/server_endpoint.py*, on the catkin_ws, by adding a new entry on the *tcp_server.start*
  part of the code
+
+
+## Configure Unity
+
+ * Detailed instructions can be found at : https://github.com/Unity-Technologies/Unity-Robotics-Hub/tree/main/tutorials/ros_unity_integration
+ 1. Launch the unity application
+ 2. Add the robotics package on Unity ```https://github.com/Unity-Technologies/Unity-Robotics-Hub/blob/main/tutorials/ros_unity_integration/setup.md``
+
+## Troubleshooting - Possible issues
+
+* *AttributeError: type object 'type' has no attribute '_TYPE_SUPPORT' This might be a ROS 1 message type but it should be a ROS 2 message type. Make sure to source your ROS 2 workspace after your ROS 1 workspace.* 
+    Solution : https://github.com/ros2/ros2/issues/451 

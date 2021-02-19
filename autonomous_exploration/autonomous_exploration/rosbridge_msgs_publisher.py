@@ -6,6 +6,7 @@ from rclpy.qos import QoSProfile
 # Import message files
 from nav_msgs.msg import OccupancyGrid as OccG
 from nav_msgs.msg import Odometry
+from std_msgs.msg import Int8MultiArray
 from autonomous_exploration_msgs.msg import MapData, PosData
 
 # Import other libraries
@@ -48,9 +49,22 @@ class RosbridgeMsgsPublisher(Node):
     
     def _mapCallback(self, data:OccG):
         
-        self.mp.width = data.info.width
-        self.mp.height = data.info.height
-        self.mp.map = data.data
+        self.mp.width = data.info.height
+        self.mp.height = data.info.width
+        
+        # Rearrange the data to be visible correctly on unity
+        tmp = np.array(data.data).reshape(data.info.height, data.info.width)
+        
+        tmp = np.rot90(np.fliplr(tmp), -1)
+        tmp = np.flip(tmp, 0)
+        a = tmp.flatten()
+        map = [int(el) for el in a]
+        #map.append(a)
+        #map.data = a
+        
+        #self.get_logger().info("-----> {}, {} {}".format(type(map[0]), a.shape, type(map)))
+        self.mp.map = map 
+
         self.mp.resolution = data.info.resolution
         map_origin = np.array([data.info.origin.position.x, data.info.origin.position.y])  
 
