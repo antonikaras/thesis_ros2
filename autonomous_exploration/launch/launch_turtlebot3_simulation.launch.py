@@ -48,7 +48,7 @@ def launch_setup(context, *args, **kwargs):
     # Add the cartographer launch file
     cartographer_dir = get_package_share_directory('autonomous_exploration')
     cartographer_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(cartographer_dir + '/launch/turtlebot3_cartographer.launch.py'),
+        PythonLaunchDescriptionSource(cartographer_dir + '/turtlebot3_cartographer.launch.py'),
         launch_arguments={'use_sim_time': use_sim_time}.items()
         )
     
@@ -87,7 +87,7 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument('turtlebot3_model', default_value='burger'),
         DeclareLaunchArgument('world', default_value='burger_new_house'),
-        DeclareLaunchArgument('mapping_package', default_value='slam'),
+        DeclareLaunchArgument('mapping_package', default_value='cartographer'),
         DeclareLaunchArgument("gui", default_value="True", description="Launch Gazebo UI?"),
         DeclareLaunchArgument("frontier_detection_method", default_value="vision"),
         OpaqueFunction(function = launch_setup)
