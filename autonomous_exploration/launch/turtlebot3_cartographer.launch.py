@@ -69,11 +69,5 @@ def generate_launch_description():
             'publish_period_sec',
             default_value=publish_period_sec,
             description='OccupancyGrid publishing period'),
-
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([turtlebot3_cartographer_prefix, '/launch/occupancy_grid.launch.py']),
-            launch_arguments={'use_sim_time': use_sim_time, 'resolution': resolution,
-                              'publish_period_sec': publish_period_sec}.items(),
-        ),
         
     ])
