@@ -29,6 +29,7 @@ class SimpleRobot(Node):
         # Initialize variables
         self.in_pos = []
         self.pos = [0.0] * 3
+        self.map_pos = [0.0] * 2
         self.tar_pos = [0.0] * 3
         self.goal_id = 0
         self.remaining_distance = 0.0
@@ -37,7 +38,9 @@ class SimpleRobot(Node):
         # Create subscribers
         # /odom
         self.create_subscription(Odometry, 'odom', self._odomCallback, qos)
-
+        ## /map
+        self.create_subscription(OccG, 'map', self._mapCallback, qos)
+        
         # Create publishers
         # /goal_pose
         self.goalPose_pub = self.create_publisher(PoseStamped, '/goal_pose', qos)
@@ -64,6 +67,11 @@ class SimpleRobot(Node):
         rot = Rotation.from_quat(quat_df)
         rot_euler = rot.as_euler('xyz', degrees=True)
         self.pos[2] = rot_euler[2]
+
+    def _mapCallback(self, data:MMD):
+
+        self.map_pos[0] = int((self.pos[0] - data.info.origin.position.x) / data.info.resolution)
+        self.map_pos[1] = int((self.pos[1] - data.info.origin.position.y) / data.info.resolution)
 
     def _navGoalResponseCallback(self, future:rclpy.Future):
         ''' Callback to process the request send to the navigtion2 action server '''
@@ -167,7 +175,7 @@ class SimpleRobot(Node):
         elif inp[0] == 'exit':
           pass
         elif inp[0] == 'pos':
-          print(self.pos)
+          print(self.pos, self.map_pos)
         elif inp[0] == 'goto':
           x = float(inp[1])
           y = float(inp[2])
