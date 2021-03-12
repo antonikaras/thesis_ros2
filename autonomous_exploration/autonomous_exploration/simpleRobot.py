@@ -12,6 +12,7 @@ from nav_msgs.msg import OccupancyGrid as OccG
 from nav_msgs.msg import MapMetaData as MMD
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
+from tf2_msgs.msg import TFMessage
 from autonomous_exploration_msgs.action import AutonomousExplorationAction
 
 # Import other libraries
@@ -33,6 +34,7 @@ class SimpleRobot(Node):
         self.tar_pos = [0.0] * 3
         self.goal_id = 0
         self.remaining_distance = 0.0
+        self.mapOdomOffset = [0.0, 0.0]
         qos = QoSProfile(depth=10)
 
         # Create subscribers
@@ -40,7 +42,9 @@ class SimpleRobot(Node):
         self.create_subscription(Odometry, 'odom', self._odomCallback, qos)
         ## /map
         self.create_subscription(OccG, 'map', self._mapCallback, qos)
-        
+        ## /tf
+        self.create_subscription(TFMessage, 'tf', self._tfCallback, qos)
+
         # Create publishers
         # /goal_pose
         self.goalPose_pub = self.create_publisher(PoseStamped, '/goal_pose', qos)
@@ -56,10 +60,18 @@ class SimpleRobot(Node):
         # Read the keyboard inputs
         self.create_timer(0.50, self.ReadInput)  # unit: s
 
+    def _tfCallback(self, data:TFMessage):
+        ''' Read the tf data and find the transformation between odom and map '''
+
+        for tr in data.transforms:
+            if tr.header.frame_id == 'map' and tr.child_frame_id == 'odom':
+                self.mapOdomOffset[0] = tr.transform.translation.x
+                self.mapOdomOffset[1] = tr.transform.translation.y
+
     def _odomCallback(self, msg:Odometry):
         pos = msg.pose.pose.position
 
-        self.pos[0:2] = [pos.x, pos.y]
+        self.pos[0:2] = [pos.x + self.mapOdomOffset[0], pos.y + self.mapOdomOffset[1]]
 
         # Convert from quaternion to euler angles
         orient = msg.pose.pose.orientation

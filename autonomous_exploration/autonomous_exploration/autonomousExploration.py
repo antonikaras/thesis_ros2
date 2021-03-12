@@ -13,6 +13,7 @@ from nav_msgs.msg import MapMetaData as MMD
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
 from sensor_msgs.msg import Image
+from tf2_msgs.msg import TFMessage
 from autonomous_exploration_msgs.msg import ExplorationTargets, ExplorationTarget
 from autonomous_exploration_msgs.action import AutonomousExplorationAction
 from geometry_msgs import msg
@@ -52,6 +53,7 @@ class AutonomousExploration(Node):
         self.remaining_distance = 0.0
         self.recovery_attempts = 0
         self.stopThread = False
+        self.mapOdomOffset = [0.0, 0.0]
         qos = QoSProfile(depth=10)
         
         # Setup rate
@@ -68,6 +70,8 @@ class AutonomousExploration(Node):
         self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.top_callback_group)
         ## /map
         self.create_subscription(OccG, 'map', self._mapCallback, qos, callback_group=self.top_callback_group)
+        ## /tf
+        self.create_subscription(TFMessage, 'tf', self._tfCallback, qos, callback_group=self.top_callback_group)
 
         # Create the action server
         self.auto_explore_action_server = ActionServer(self, AutonomousExplorationAction, 'autonomous_exploration', 
@@ -78,6 +82,14 @@ class AutonomousExploration(Node):
                                                         
 
         self.get_logger().info('Autonomous explorer was initiated successfully')
+
+    def _tfCallback(self, data:TFMessage):
+        ''' Read the tf data and find the transformation between odom and map '''
+
+        for tr in data.transforms:
+            if tr.header.frame_id == 'map' and tr.child_frame_id == 'odom':
+                self.mapOdomOffset[0] = tr.transform.translation.x
+                self.mapOdomOffset[1] = tr.transform.translation.y
 
     def _mapCallback(self, data:OccG):
 
@@ -93,7 +105,7 @@ class AutonomousExploration(Node):
 
         pos = msg.pose.pose.position
 
-        self.pos[0:2] = [pos.x, pos.y]
+        self.pos[0:2] = [pos.x + self.mapOdomOffset[0], pos.y + self.mapOdomOffset[1]]
 
         # Convert from quaternion to euler angles
         orient = msg.pose.pose.orientation
