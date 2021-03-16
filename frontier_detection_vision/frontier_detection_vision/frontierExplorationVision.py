@@ -52,7 +52,6 @@ class FrontierDetectionVision(Node):
         # /vision_based_frontier_detection/exploration_candidates
         self.map_image_pub = self.create_publisher(Image, '/vision_based_frontier_detection/map_image_pub', qos)
         self.map_image_pub_ = self.create_publisher(Image, '/vision_based_frontier_detection/map_image_pub_', qos)
-        
 
         self.get_logger().info("Vision based frontier detector has started")
 
