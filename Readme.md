@@ -134,6 +134,9 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
     
 * Load the maps
     ``` ros2 service call /map_server/load_map nav2_msgs/srv/LoadMap "{map_url: /ros/maps/map.yaml}" ```
+
+* Start the lifecycle node
+    ```ros2 run nav2_util lifecycle_bringup map_server ```
     
 
 ## Troubleshooting - Possible issues

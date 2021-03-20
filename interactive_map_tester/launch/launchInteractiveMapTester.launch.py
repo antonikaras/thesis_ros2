@@ -51,7 +51,7 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments={'use_sim_time': use_sim_time}.items()
         )
 
-    mapping_package_launch = cartographer_launch
+    mapping_package_launch = slam_toolbox_launch
 
     # Add the rosbridge_msgs publisher
     rosbridge_msgs_pub = Node(package='autonomous_exploration',
@@ -63,11 +63,24 @@ def launch_setup(context, *args, **kwargs):
         PythonLaunchDescriptionSource(map_saver_dir + '/launch/map_saver_server.launch.py')
     )
     
+    # Launch the interactive map 
+    interactive_map_launch_dir = get_package_share_directory('interactive_map_tester')
+    interactive_map_launch = Node(
+            package='nav2_map_server',
+            executable='map_server',
+            output='screen',
+            parameters=[interactive_map_launch_dir + '/interactive_map_server.yaml'])
+    
+    # Activate map_server lifecycle node
+    lifecycle_node_activate_launch = Node(package='nav2_util',
+                                          executable='lifecycle_bringup',
+                                          parameters=['map_server'])
+    
     # Start the interactive_map_visualization node
     visualize_interactive_map = Node(package='interactive_map_tester',
                                      executable='visualizeInteractiveMap')
 
-    return [world_launch, navigation2_launch, mapping_package_launch, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
+    return [world_launch, navigation2_launch, rosbridge_msgs_pub, visualize_interactive_map]
 
 def generate_launch_description():
     default_map = os.path.join(

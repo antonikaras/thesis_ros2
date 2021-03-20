@@ -52,9 +52,9 @@ class RosbridgeMsgsPublisher(Node):
         self.create_subscription(TFMessage, 'tf', self._tfCallback, qos, callback_group=self.top_callback_group)
 
         # Setup publishers
-        ## /autonomous_exploration/map
+        ## /rosbridge_msgs_publisher/map
         self.rosbridgeMap_pub = self.create_publisher(MapData, '/rosbridge_msgs_publisher/map', qos)
-        ## /autonomous_exploration/position
+        ## /rosbridge_msgs_publisher/robot_pos
         self.rosbridgePos_pub = self.create_publisher(PosData, '/rosbridge_msgs_publisher/robot_pos', qos)
 
         # Create the navigation2 action client
