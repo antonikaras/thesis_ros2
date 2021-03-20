@@ -13,6 +13,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name), glob('params/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -23,7 +24,10 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'visualizeInteractiveMap = interactive_map_tester.visualizeInteractiveMap:main'
+            'visualizeInteractiveMap = interactive_map_tester.visualizeInteractiveMap:main',
+            'saveInteactiveMap = interactive_map_tester.saveInteractiveMap:main',
+            'loadInteactiveMap = interactive_map_tester.loadInteractiveMap:main'
+
         ],
     },
 )
