@@ -33,54 +33,19 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments={'use_sim_time': use_sim_time, 'map': map}.items()
     ) 
 
-    # Add the SLAM launch file
-    slam_toolbox_launch = Node(
-        parameters=[
-          get_package_share_directory("interactive_map_tester") + '/mapper_params_online_async.yaml',
-          {'use_sim_time': use_sim_time}
-        ],
-        package='slam_toolbox',
-        executable='async_slam_toolbox_node',
-        name='slam_toolbox',
-        output='screen')
-
-    # Add the cartographer launch file
-    cartographer_dir = get_package_share_directory('autonomous_exploration')
-    cartographer_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(cartographer_dir + '/turtlebot3_cartographer.launch.py'),
-        launch_arguments={'use_sim_time': use_sim_time}.items()
-        )
-
-    mapping_package_launch = slam_toolbox_launch
-
     # Add the rosbridge_msgs publisher
     rosbridge_msgs_pub = Node(package='autonomous_exploration',
                           executable='rosbridge_msgs_publisher')
     
-    # Add the simulation world launch file
-    map_saver_dir = get_package_share_directory('nav2_map_server')
-    map_saver_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(map_saver_dir + '/launch/map_saver_server.launch.py')
-    )
-    
-    # Launch the interactive map 
-    interactive_map_launch_dir = get_package_share_directory('interactive_map_tester')
-    interactive_map_launch = Node(
-            package='nav2_map_server',
-            executable='map_server',
-            output='screen',
-            parameters=[interactive_map_launch_dir + '/interactive_map_server.yaml'])
-    
-    # Activate map_server lifecycle node
-    lifecycle_node_activate_launch = Node(package='nav2_util',
-                                          executable='lifecycle_bringup',
-                                          parameters=['map_server'])
+    # Start publishing the maps
+    publish_maps = Node(package='interactive_map_tester',
+                        executable='loadInteactiveMap')
     
     # Start the interactive_map_visualization node
     visualize_interactive_map = Node(package='interactive_map_tester',
                                      executable='visualizeInteractiveMap')
 
-    return [world_launch, navigation2_launch, rosbridge_msgs_pub, visualize_interactive_map]
+    return [world_launch, navigation2_launch, rosbridge_msgs_pub, visualize_interactive_map, publish_maps]
 
 def generate_launch_description():
     default_map = os.path.join(

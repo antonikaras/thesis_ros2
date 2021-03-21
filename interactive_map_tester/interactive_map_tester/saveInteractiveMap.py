@@ -100,7 +100,7 @@ class SaveInteractiveMap(Node):
         interactiveMap = interactiveMap.astype(np.uint8)
         
         # Save the maps
-        cv.imwrite('/home/antony/interactive_map.jpg', interactiveMap)
+        cv.imwrite('/home/antony/interactive_map.pgm', interactiveMap)
         cv.imwrite('/home/antony/interactive_map_color.jpg', map_img)
         self.mapsSaved = True
 
