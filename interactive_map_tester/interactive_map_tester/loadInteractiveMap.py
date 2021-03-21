@@ -30,8 +30,8 @@ class LoadInteractiveMap(Node):
         # Initialize the variables
         self.bridge = CvBridge()
         qos = QoSProfile(depth=10)
-        self.pos = [0.0, 0.0]
-        self.mapOdomOffset = [0.0, 0.0]
+        self.pos = [0.0, 0.0, 0.0]
+        self.mapOdomOffset = []
         self.map_pos = [0, 0]
 
         # Create subscribers
@@ -51,22 +51,29 @@ class LoadInteractiveMap(Node):
         # Load the maps from the .yaml files
         self.LoadMaps()
 
-        # Create a timer to store the interactive map
-        self.create_timer(2.0, self.MapsPublisher)  # unit: s
+        # Create a timer to publish the interactive map
+        self.create_timer(.5, self.MapsPublisher)  # unit: s
 
-        self.get_logger().info("Maps loader/publisher was initiated")
-    
     def _tfCallback(self, data:TFMessage):
         ''' Read the tf data and find the transformation between odom and map '''
 
         for tr in data.transforms:
             if tr.header.frame_id == 'map' and tr.child_frame_id == 'odom':
+                if (len(self.mapOdomOffset) == 0):
+                    self.get_logger().info("Maps loader/publisher was initiated")
+                    self.mapOdomOffset = [0.0] * 2
                 self.mapOdomOffset[0] = tr.transform.translation.x
                 self.mapOdomOffset[1] = tr.transform.translation.y
 
     def _odomCallback(self, msg:Odometry):
+        
+        # Don't publish the map in case the initial pose is not published
+        if (len(self.mapOdomOffset) == 0):
+            return
+        
         pos = msg.pose.pose.position
 
+        #self.pos[0:2] = [pos.x + self.mapOdomOffset[0], pos.y + self.mapOdomOffset[1]]
         self.pos[0:2] = [pos.x + self.mapOdomOffset[0], pos.y + self.mapOdomOffset[1]]
 
         # Convert from quaternion to euler angles
@@ -108,7 +115,7 @@ class LoadInteractiveMap(Node):
                     self.map_origin[0:3] = doc
         
         # Load the interactive map
-        self.interactiveMap = cv.imread("/home/antony/interactive_map.jpg", -1)
+        self.interactiveMap = cv.imread("/home/antony/interactive_map.pgm", -1)
         self.interactiveMap = self.interactiveMap.flatten()
 
         # Create the interactive colorful map
@@ -128,12 +135,12 @@ class LoadInteractiveMap(Node):
         # Reshape the map image to width * height * 3
         self.interactiveMapColor = np.reshape(self.interactiveMapColor, (self.width, self.height, 3))
 
-        # Draw the position of the robot it the map
-        self.interactiveMapColor[self.map_pos[0], self.map_pos[1]] = np.array([255, 0, 0])
-        self.interactiveMapColor = self.interactiveMapColor.astype(np.uint8)
-
     def MapsPublisher(self):
         ''' Publish the map, interactive map and interactive_map_color '''
+        # Don't publish the map in case the initial pose is not published
+        if (len(self.mapOdomOffset) == 0):
+            return
+            
         # Publish the regular map
         map = MapData()
         map.width = self.width
@@ -143,12 +150,17 @@ class LoadInteractiveMap(Node):
         map.origin = np.array(self.map_origin, np.float32)
         self.map_pub.publish(map)
 
+        # Draw the position of the robot it the map
+        interactiveMapColor = self.interactiveMapColor.copy()
+        interactiveMapColor[self.width - self.map_pos[0], self.height - self.map_pos[1]] = np.array([255, 0, 0])
+        interactiveMapColor = interactiveMapColor.astype(np.uint8)
+        
         # Publish the interactive map
         map.map = [int(tmp) for tmp in self.interactiveMap.flatten()]
-        #self.interactiveMap_pub.publish(map)
+        self.interactiveMap_pub.publish(map)
 
         # Publish the interactive map with colors
-        self.interactiveMapColor_pub.publish(self.bridge.cv2_to_imgmsg(self.interactiveMapColor, "rgb8"))
+        self.interactiveMapColor_pub.publish(self.bridge.cv2_to_imgmsg(interactiveMapColor, "rgb8"))
 
 ###################################################################################################
 def main(args=None):

@@ -64,6 +64,13 @@ source devel/setup.bash
 * thesis_gazebo:
     1. Contains the worlds and models used in the simulation
     2. Gazebo environments from ```https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps.git``` were used
+* interactive_map_tester:
+    1. Contains the nodes for saving the map and interactive map
+    2. Contains the nodes for loading/displaying the map & interactive map
+    
+    [TODO] i.  Contains a demo using the interactive map
+    
+    [TODO] ii. Add map save/load path as input
 
 ## Launch the simulation
 
@@ -123,7 +130,7 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
  1. Launch the unity application
  2. Add the robotics package on Unity ```https://github.com/Unity-Technologies/Unity-Robotics-Hub/blob/main/tutorials/ros_unity_integration/setup.md```
 
-## Save the map
+## Save/Load the map
 
 * Run the map saver server
     ``` ros2 launch nav2_map_server map_saver_server.launch.py ```
@@ -137,7 +144,12 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
 
 * Start the lifecycle node
     ```ros2 run nav2_util lifecycle_bringup map_server ```
-    
+
+### Used commands
+    * Saved the map
+    ```ros2 run nav2_map_server map_saver_cli -f ~/map --ros-args --remap map:=/map ```
+    * Saved interactive map
+    ``` ros2 run interactive_map_tester saveInteactiveMap ```
 
 ## Troubleshooting - Possible issues
 

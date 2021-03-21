@@ -26,8 +26,8 @@ setup(
         'console_scripts': [
             'visualizeInteractiveMap = interactive_map_tester.visualizeInteractiveMap:main',
             'saveInteactiveMap = interactive_map_tester.saveInteractiveMap:main',
-            'loadInteactiveMap = interactive_map_tester.loadInteractiveMap:main'
-
+            'loadInteactiveMap = interactive_map_tester.loadInteractiveMap:main',
+            'inteactiveMapDemo = interactive_map_tester.interactiveMapDemo:main'
         ],
     },
 )
