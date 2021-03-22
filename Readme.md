@@ -146,12 +146,14 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
     ```ros2 run nav2_util lifecycle_bringup map_server ```
 
 ### Used commands
-    * Saved the map
+* Saved the map
     ```ros2 run nav2_map_server map_saver_cli -f ~/map --ros-args --remap map:=/map ```
-    * Saved interactive map
+* Saved interactive map
     ``` ros2 run interactive_map_tester saveInteactiveMap ```
 
 ## Troubleshooting - Possible issues
 
 * *AttributeError: type object 'type' has no attribute '_TYPE_SUPPORT' This might be a ROS 1 message type but it should be a ROS 2 message type. Make sure to source your ROS 2 workspace after your ROS 1 workspace.* 
     Solution : https://github.com/ros2/ros2/issues/451 
+* Change file permissions 
+```sudo chmod -R o+rw docker-workspace/```
