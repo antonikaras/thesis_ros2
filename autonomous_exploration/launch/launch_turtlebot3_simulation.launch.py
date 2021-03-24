@@ -86,7 +86,8 @@ def launch_setup(context, *args, **kwargs):
     visualize_interactive_map = Node(package='interactive_map_tester',
                                      executable='visualizeInteractiveMap')
 
-    return [world_launch, navigation2_launch, mapping_package_launch, frontier_detection, autonomous_exploration_action_server, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
+    #return [world_launch, navigation2_launch, mapping_package_launch, frontier_detection, autonomous_exploration_action_server, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
+    return [world_launch, navigation2_launch, mapping_package_launch, frontier_detection, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
 
 def generate_launch_description():
     return LaunchDescription([
