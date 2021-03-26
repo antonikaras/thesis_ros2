@@ -12,12 +12,21 @@ def launch_setup(context, *args, **kwargs):
     # Define input variables
     use_sim_time = LaunchConfiguration('use_sim_time')
     turtlebot3_model = LaunchConfiguration('turtlebot3_model').perform(context)
-    world = LaunchConfiguration('world').perform(context)
+    world_name = LaunchConfiguration('world').perform(context)
     world = os.path.join(get_package_share_directory('thesis_gazebo'),
-                         'worlds', world, world + '.model')
+                         'worlds', world_name, world_name + '.model')
 
     # Add the turtlebot3 model
     os.environ["TURTLEBOT3_MODEL"] = turtlebot3_model
+
+    # Publish the directory of the additional model files
+    models_dir = os.path.join(get_package_share_directory('thesis_gazebo'), 'models')
+    if world_name == 'factory':
+        print("-->", os.path.join(models_dir, 'factory', 'models') + ":$GAZEBO_MODEL_PATH")
+        os.environ["GAZEBO_MODEL_PATH"] = os.path.join(models_dir, 'factory', 'models') + ":$GAZEBO_MODEL_PATH"
+    elif world_name == 'hospital':
+        os.environ["GAZEBO_MODEL_PATH"] = os.path.join(models_dir, 'hospital', 'models') + ":$GAZEBO_MODEL_PATH"
+        #os.environ["GAZEBO_MODEL_PATH"] = os.path.join(models_dir, 'hospital', 'fuel_models') + ":$GAZEBO_MODEL_PATH"
 
     launch_file_dir = os.path.join(get_package_share_directory('turtlebot3_gazebo'), 'launch')
     pkg_gazebo_ros = get_package_share_directory('gazebo_ros')

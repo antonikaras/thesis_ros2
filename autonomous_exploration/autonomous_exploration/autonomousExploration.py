@@ -9,18 +9,14 @@ from rclpy.executors import MultiThreadedExecutor
 # Import message files
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid as OccG
-from nav_msgs.msg import MapMetaData as MMD
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
-from sensor_msgs.msg import Image
 from tf2_msgs.msg import TFMessage
 from autonomous_exploration_msgs.msg import ExplorationTargets, ExplorationTarget
 from autonomous_exploration_msgs.action import AutonomousExplorationAction
-from geometry_msgs import msg
 
 # Import other libraries
 import numpy as np
-from scipy.spatial.transform import Rotation
 import time
 
 class AutonomousExploration(Node):
@@ -45,12 +41,15 @@ class AutonomousExploration(Node):
         self.exploredTargets = []
         self.mapOdomOffset = []
         self.pos = np.array([0.0, 0.0])
-        self.curTar = np.array([0.0, 0.0])
+        self.curTar = []
+        self.curTarScore = 0.0
+        self.newTarScore = 0.0
+        self.newTar = []
         self.goal_sent = 0
         self.remaining_distance = 0.0
         self.recovery_attempts = 0
         self.stopThread = False
-        self.reachedGoal = False
+        self.mapUpdated = False
         qos = QoSProfile(depth=10)
         
         # Setup rate
@@ -67,6 +66,9 @@ class AutonomousExploration(Node):
         self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.top_callback_group)
         ## /tf
         self.create_subscription(TFMessage, 'tf', self._tfCallback, qos, callback_group=self.top_callback_group)
+        ## /map
+        self.create_subscription(OccG, 'map', self._mapCallback, qos)
+        
         # Create the action server
         self.auto_explore_action_server = ActionServer(self, AutonomousExplorationAction, 'autonomous_exploration', 
                                                         execute_callback = self._aeActionCallback, 
@@ -76,6 +78,29 @@ class AutonomousExploration(Node):
 
         self.get_logger().info('Autonomous explorer was initiated successfully')
 
+    def _mapCallback(self, data:OccG):
+        
+        if len(self.curTar) == 0:
+            return
+        # Convert the current target to map coordinates
+        x = int((self.curTar[1] - data.info.origin.position.x) / data.info.resolution)
+        y = int((self.curTar[0] - data.info.origin.position.y) / data.info.resolution) 
+        
+        # Convert the map from 1D to 2D
+        map = np.array(data.data).reshape((data.info.height, data.info.width)).T
+
+        # Compute the undiscovered area surrounding the target
+        step = int(self.LidarRange / data.info.resolution)
+
+        areaOfInterest = map[x - step: x + step, y - step: y + step].copy()
+        area = float(np.count_nonzero((areaOfInterest == -1)))
+        w, h = areaOfInterest.shape
+        areaNormalized = area / float(w * h + 0.0001)
+        dist = np.linalg.norm(self.curTar - self.pos) 
+
+        self.curTarScore = self.EvaluatePoint([dist, areaNormalized])
+            
+        self.mapUpdated = True
 
     def _tfCallback(self, data:TFMessage):
         ''' Read the tf data and find the transformation between odom and map '''
@@ -106,6 +131,9 @@ class AutonomousExploration(Node):
             self.VFCandidates_near.append(dt.cluster_point_near)
             self.VFCandidates_center.append(dt.cluster_point_center)
             self.VFCandidates_far.append(dt.cluster_point_far)
+        
+        # Find the best new target
+        self.newTar, self.newTarScore = self.PickTargetMaxExpEntr()
 
     def _navGoalResponseCallback(self, future:rclpy.Future):
         ''' 
@@ -247,7 +275,7 @@ class AutonomousExploration(Node):
 
         return tar
     
-    def EvaluatePoint(self, pt:int) -> float:
+    def EvaluatePoint(self, pt:float) -> float:
         '''Compute the entropy in the given point'''
         # Get the distance from the robot to the target
         dist = pt[0]
@@ -261,55 +289,32 @@ class AutonomousExploration(Node):
 
     def PickTargetMaxExpEntr(self):
         ''' Use a cost function to estimate the best goal '''
-        # Create a copy of the targets
-        targets = np.array(self.VFCandidates_center).copy()
+        if len(self.VFCandidates_center) == 0:
+            return [], 0
+        if len(self.VFCandidates_center) != len(self.VFCandidates_far):
+            self.get_logger().warn("Center {}, far {}".format(len(self.VFCandidates_center), len(self.VFCandidates_far)))
 
+        # Create a copy of the targets
+        targetCriteria = np.array(self.VFCandidates_center).copy()
+        targets = np.array(self.VFCandidates_far).copy()
         scores = []
         poss = []
-
-        # Compute the score for each of the frontier goals
-        for tar in targets:
             
+        # Compute the score for each of the frontier goals
+        for cnt in range(len(targets)):
+            #self.get_logger().info("center {}, far {}".format(targetCriteria.shape, targets.shape))
+            dist = targetCriteria[cnt][2]
+            area = targetCriteria[cnt][3]
+            tar = np.array([targets[cnt][0], targets[cnt][1]])
             if not self.IsExplored(np.array(tar[0], tar[1])):
-                scores.append(self.EvaluatePoint([tar[2], tar[3]]))
-                poss.append(np.array(tar[0], tar[1]))
+                scores.append(self.EvaluatePoint([dist, area]))
+                poss.append(np.array([tar[0], tar[1]]))
         
         # Return the most promissing candidate
         if len(scores) == 0:
-            return [float('inf')], 0
+            return [], 0
         
         return poss[np.argmax(scores)], max(scores)
-
-    def StopNavigationNearFar(self, timeOut : float, pos_bef : np.array, ts : float, ts2 : float):
-        ''' 
-            Condition check for stopping the navigation to the current goal
-            while the robot is on near/far autonomous exploration mode
-        '''
-        # -1:Cancel navigation, 0:continue, 1:navigation succedded 
-        navigation_status = 0
-
-        # Compute the distance between the goal and the robot position
-        #self.get_logger().info("Dist to goal {}, tar {}, pos {}".format(np.linalg.norm(self.pos - self.curTar), self.curTar, self.pos))
-        if np.linalg.norm(self.pos - self.curTar) < 0.4:
-            self.get_logger().info("Reached goal")
-            navigation_status = 1   
-
-        # Check if the robot stuck in the same position for too long
-        pos_now = np.array([self.pos[0], self.pos[1]])
-        if time.time() - ts > timeOut:
-            ts = time.time() 
-            if np.linalg.norm(pos_bef - pos_now) < 0.1:
-                self.get_logger().warn("Robot didn't move while navigating to the next waypoint")
-                navigation_status = -1
-                            
-            pos_bef = pos_now.copy()
-                    
-        # Check if it took too long to go to the goal
-        if (time.time() - ts2 > 60.0):
-            self.get_logger().warn("Timeout reached, too much time spent travelling to goal")
-            navigation_status = -1
-        
-        return navigation_status, ts, pos_bef
 
     def Explore(self, timeOut : float, maxSteps : int, method : str, goal) -> bool:
         ''' 
@@ -339,38 +344,61 @@ class AutonomousExploration(Node):
             elif method == "far":
                 tar = self.PickTargetFar()
             else:
-                tar = self.PickTargetMaxExpEntr()
+                tar, self.curTarScore = self.PickTargetMaxExpEntr()
+                #self.get_logger().info("{}, {}".format(tar, score))
             
             # if there is a target sent it to the navigation controller
             if len(tar) > 0:
+                self.get_logger().info("Navigating to {}".format(tar))
+                self.mapUpdated = False
                 self.curTar = np.array(tar)
                 self.exploredTargets.append(np.array(tar))
-                if ((method == 'near') or (method == 'far')):
-                    self._sendNavGoal(tar)
-                    
-                    ts = time.time()
-                    ts2 = time.time()
-                    reached_goal = False
-                    pos_bef = np.array([self.pos[0], self.pos[1]])
+                self._sendNavGoal(tar)
+                
+                ts = time.time()
+                ts2 = time.time()
+                pos_bef = np.array([self.pos[0], self.pos[1]])
 
-                    # Wait until timeout or goal reached and publish feedback
-                    while (rclpy.ok()) and (not reached_goal):
-                        # Create the action feedback
-                        feedback_msg.goal = [float(tar[0]), float(tar[1]), 0.0]
-                        feedback_msg.pos = [float(self.pos[0]), float(self.pos[1])]
-                        feedback_msg.goal_id = cnt
-                        feedback_msg.remaining_distance = self.remaining_distance
-                        goal.publish_feedback(feedback_msg)
+                # -1:Cancel navigation, 0:continue, 1:navigation succedded 2:found better goal
+                navigation_status = 0
 
-                        # Check if the navigation to the current goal should stop
-                        if ((method == 'near') or (method == 'far')):
-                            navigation_status, ts, pos_bef = self.StopNavigationNearFar(timeOut, pos_bef, ts, ts2)
-                            if navigation_status == -1:
+                # Wait until timeout or goal reached and publish feedback
+                while (rclpy.ok()) and (navigation_status == 0):
+                    # Create the action feedback
+                    feedback_msg.goal = [float(tar[0]), float(tar[1]), 0.0]
+                    feedback_msg.pos = [float(self.pos[0]), float(self.pos[1])]
+                    feedback_msg.goal_id = cnt
+                    feedback_msg.remaining_distance = self.remaining_distance
+                    goal.publish_feedback(feedback_msg)
+
+                    if np.linalg.norm(self.pos - self.curTar) < 0.4:
+                        self.get_logger().info("Reached goal, pos {}".format(self.pos))
+                        navigation_status = 1   
+                        break
+
+                    # Check if the robot stuck in the same position for too long
+                    pos_now = np.array([self.pos[0], self.pos[1]])
+                    if time.time() - ts > timeOut:
+                        ts = time.time() 
+                        if np.linalg.norm(pos_bef - pos_now) < 0.1:
+                            self.get_logger().warn("Robot didn't move while navigating to the next waypoint")
+                            navigation_status = -1
+                            break
+                        pos_bef = pos_now.copy()
+
+                    # Check if it took too long to go to the goal
+                    if (time.time() - ts2 > 60.0):
+                        self.get_logger().warn("Timeout reached, too much time spent travelling to goal")
+                        navigation_status = -1
+                        break
+
+                    # Check if a better goal exist, only for the Entopy method
+                    if method != 'near' and method != 'far':
+                        if self.curTarScore > 0.01:
+                            if self.newTarScore / self.curTarScore > 2.5:
+                                self.get_logger().info("Found better navigation target {}".format(self.newTar))
+                                navigation_status = 2
                                 break
-                            elif navigation_status == 1:
-                                reached_goal = True
-                else:
-                    self._sendNavGoal(tar)
                 cnt += 1
             else:
                 self.get_logger().warn("No more " + method + " targets, exploration stopping")
@@ -378,7 +406,7 @@ class AutonomousExploration(Node):
                 break
 
             # Check if the robot reached the goal
-            if reached_goal:
+            if navigation_status > 0:
                 stuck_cnt = 0
             else:
                 stuck_cnt += 1
