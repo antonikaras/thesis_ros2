@@ -202,10 +202,11 @@ class SimpleRobot(Node):
         elif inp[0] == 'cancel':
             self.ae_goal_handle.cancel_goal_async()
         elif inp[0] == 'explore':
-            if len(inp) == 2:
-                self.Explore(timeOut = 5.0, maxSteps = int(inp[1]), method = 'vis')
+            method = inp[1]
+            if len(inp) == 3:
+                self.Explore(timeOut = 10.0, maxSteps = int(inp[2]), method = method)
             else:
-                self.Explore(timeOut = 5.0, maxSteps = 50, method = 'vis')
+                self.Explore(timeOut = 10.0, maxSteps = 50, method = method)
 
 
 def main(args=None):
