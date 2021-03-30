@@ -9,18 +9,14 @@ from rclpy.executors import MultiThreadedExecutor
 # Import message files
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid as OccG
-from nav_msgs.msg import MapMetaData as MMD
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
-from sensor_msgs.msg import Image
 from tf2_msgs.msg import TFMessage
 from autonomous_exploration_msgs.msg import ExplorationTargets, ExplorationTarget
 from autonomous_exploration_msgs.action import AutonomousExplorationAction
-from geometry_msgs import msg
 
 # Import other libraries
 import numpy as np
-from scipy.spatial.transform import Rotation
 import time
 
 class AutonomousExploration(Node):
@@ -39,21 +35,21 @@ class AutonomousExploration(Node):
         self.act_callback_group = ReentrantCallbackGroup()
 
         # Initialize the variables
-        self.in_pos = []
-        self.pos = [0.0, 0.0, 0.0]
-        self.VFCandidates = []
-        self.map = []
-        self.map_width = 0
-        self.map_height = 0
-        self.map_resolution = 0
-        self.map_size = 0
-        self.map_origin = np.array([0.0, 0.0])
-        self.prev_targets = []
+        self.VFCandidates_near = []
+        self.VFCandidates_center = []
+        self.VFCandidates_far = []
+        self.exploredTargets = []
+        self.mapOdomOffset = []
+        self.pos = np.array([0.0, 0.0])
+        self.curTar = []
+        self.curTarScore = 0.0
+        self.newTarScore = 0.0
+        self.newTar = []
         self.goal_sent = 0
         self.remaining_distance = 0.0
         self.recovery_attempts = 0
         self.stopThread = False
-        self.mapOdomOffset = [0.0, 0.0]
+        self.mapUpdated = False
         qos = QoSProfile(depth=10)
         
         # Setup rate
@@ -68,58 +64,76 @@ class AutonomousExploration(Node):
         self.create_subscription(ExplorationTargets, '/vision_based_frontier_detection/exploration_candidates', self._explorationCandidatesVFCallback, qos, callback_group=self.top_callback_group)
         ## /odom
         self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.top_callback_group)
-        ## /map
-        self.create_subscription(OccG, 'map', self._mapCallback, qos, callback_group=self.top_callback_group)
         ## /tf
         self.create_subscription(TFMessage, 'tf', self._tfCallback, qos, callback_group=self.top_callback_group)
-
+        ## /map
+        self.create_subscription(OccG, 'map', self._mapCallback, qos)
+        
         # Create the action server
         self.auto_explore_action_server = ActionServer(self, AutonomousExplorationAction, 'autonomous_exploration', 
                                                         execute_callback = self._aeActionCallback, 
                                                         callback_group=self.act_callback_group, 
                                                         cancel_callback = self._aeCancelCallback)
-        #                                                goal_callback = self._aeGoalCallback,
-                                                        
+        #                                                goal_callback = self._aeGoalCallback,                      
 
         self.get_logger().info('Autonomous explorer was initiated successfully')
+
+    def _mapCallback(self, data:OccG):
+        
+        if len(self.curTar) == 0:
+            return
+        # Convert the current target to map coordinates
+        x = int((self.curTar[1] - data.info.origin.position.x) / data.info.resolution)
+        y = int((self.curTar[0] - data.info.origin.position.y) / data.info.resolution) 
+        
+        # Convert the map from 1D to 2D
+        map = np.array(data.data).reshape((data.info.height, data.info.width)).T
+
+        # Compute the undiscovered area surrounding the target
+        step = int(self.LidarRange / data.info.resolution)
+
+        areaOfInterest = map[x - step: x + step, y - step: y + step].copy()
+        area = float(np.count_nonzero((areaOfInterest == -1)))
+        w, h = areaOfInterest.shape
+        areaNormalized = area / float(w * h + 0.0001)
+        dist = np.linalg.norm(self.curTar - self.pos) 
+
+        self.curTarScore = self.EvaluatePoint([dist, areaNormalized])
+            
+        self.mapUpdated = True
 
     def _tfCallback(self, data:TFMessage):
         ''' Read the tf data and find the transformation between odom and map '''
 
         for tr in data.transforms:
             if tr.header.frame_id == 'map' and tr.child_frame_id == 'odom':
+                if (len(self.mapOdomOffset) == 0):
+                    self.mapOdomOffset = [0.0] * 2
                 self.mapOdomOffset[0] = tr.transform.translation.x
                 self.mapOdomOffset[1] = tr.transform.translation.y
 
-    def _mapCallback(self, data:OccG):
-
-        self.map_width = data.info.width
-        self.map_height = data.info.height
-        self.map = np.array(data.data).reshape((self.map_height, self.map_width)).T
-        self.map_resolution = data.info.resolution
-        self.map_size = self.map_height * self.map_width    
-        self.map_origin = np.array([data.info.origin.position.x, data.info.origin.position.y])  
-    
     def _odomCallback(self, msg:Odometry):
-        ''' Odometry function callback'''
-
+        
+        # Don't publish the map in case the initial pose is not published
+        if (len(self.mapOdomOffset) == 0):
+            return
+        
         pos = msg.pose.pose.position
 
-        self.pos[0:2] = [pos.x + self.mapOdomOffset[0], pos.y + self.mapOdomOffset[1]]
+        self.pos[0:2] = [pos.x + self.mapOdomOffset[0], pos.y + self.mapOdomOffset[1]]   
 
-        # Convert from quaternion to euler angles
-        orient = msg.pose.pose.orientation
-        quat_df = [orient.x, orient.y, orient.z, orient.w]
-        rot = Rotation.from_quat(quat_df)
-        rot_euler = rot.as_euler('xyz', degrees=True)
-        self.pos[2] = rot_euler[2]
-    
     def _explorationCandidatesVFCallback(self, data:ExplorationTargets):
         ''' Read the exploration candidates detected using computer vision '''        
-        self.VFCandidates[:] = []
+        self.VFCandidates_near[:] = []
+        self.VFCandidates_center[:] = []
+        self.VFCandidates_far[:] = []
         for dt in data.targets:
-            pos = np.array(dt.pos)
-            self.VFCandidates.append([np.array(dt.pos), 0.0, 0.0])
+            self.VFCandidates_near.append(dt.cluster_point_near)
+            self.VFCandidates_center.append(dt.cluster_point_center)
+            self.VFCandidates_far.append(dt.cluster_point_far)
+        
+        # Find the best new target
+        self.newTar, self.newTarScore = self.PickTargetMaxExpEntr()
 
     def _navGoalResponseCallback(self, future:rclpy.Future):
         ''' 
@@ -147,27 +161,18 @@ class AutonomousExploration(Node):
 
     def _navGoalResultCallback(self, future:rclpy.Future):
         result = future.result().result
-        #self.target_explored = True
         
     def _navGoalFeedbackCallback(self, data):
         self.remaining_distance = data.feedback.distance_remaining
         self.recovery_attempts = data.feedback.number_of_recoveries 
 
-    def _sendNavGoal(self, goal_pos:list) -> bool:
+    def _sendNavGoal(self, goal_pos:float):
         ''' 
-            Send target position to the navigation2 controller 
-            @return values: True  -> goal was previously explored
-                            False -> goal wasn't explored                        
+            Send target position to the navigation2 controller                   
         '''
         # Check if the goal pos has been previously explored
         xs = float("{:.3f}".format(goal_pos[0]))
         ys = float("{:.3f}".format(goal_pos[1]))
-
-        if [xs, ys] in self.prev_targets:
-            self.get_logger().info('Previously explored {}'.format([xs, ys]))
-            return True
-        else:
-            self.prev_targets.append([xs, ys])
 
         goal_msg = NavigateToPose.Goal()
 
@@ -180,79 +185,10 @@ class AutonomousExploration(Node):
         goal.pose.position.x = float(goal_pos[0])
         goal.pose.position.y = float(goal_pos[1])
 
-        # Orientation part
-        rot = Rotation.from_euler('xyz', [0.0, 0.0, goal_pos[2]])
-        quat = rot.as_quat()
-        goal.pose.orientation.x = float(quat[0])
-        goal.pose.orientation.y = float(quat[1])    
-        goal.pose.orientation.z = float(quat[2])
-        goal.pose.orientation.w = float(quat[3])
-
         goal_msg.pose = goal
-
+        #self.nav2_action_Client.send_goal(goal_msg)
         future = self.nav2_action_Client.send_goal_async(goal_msg)
-        self.goal_sent = 0
         future.add_done_callback(self._navGoalResponseCallback)
-
-        return False
-
-    def GetArea(self, pos:np.array) -> float:
-        ''' Compute the undiscovered area surrounding the target '''
-
-        time.sleep(0.001)
-
-        # Convert the robot position to map position
-        i = int((pos[0] - self.map_origin[0]) / self.map_resolution)
-        j = int((pos[1] - self.map_origin[1]) / self.map_resolution)
-
-        step = int(self.LidarRange / self.map_resolution)
-
-        areaOfInterest = self.map[j - step: j + step, i - step: i + step]
-        #print(areaOfInterest)
-        #print(type(areaOfInterest))
-        area = float(np.count_nonzero(areaOfInterest == -1))
-        areaNormalized = area / float(len(areaOfInterest) ** 2 + 0.0001)
-
-        #print(areaNormalized)
-
-        return areaNormalized
-    
-    def EvaluatePoint(self, pos:np.array) -> float:
-        '''Compute the entropy in the given point'''
-        # Get the distance from the robot to the target
-        dist = np.linalg.norm(pos - self.pos[0:2])
-        area = float(self.GetArea(pos))
-
-        # Compute the undiscovered area surrounding the target
-        if dist > 1:
-            return area ** np.log(dist + 0.0001)
-        else:
-            return -area ** np.log(dist + 0.0001)
-
-    def PickTargets(self):
-        ''' Pick the most promising targets to explore'''
-
-        # Copy the targets
-        #self.rate.sleep()
-        targets = np.array(self.VFCandidates).copy()
-
-        if len(targets) == 0:
-            return [float('inf')], 0
-        scores = []
-        poss = []
-        for pos, _, _ in targets:
-            val = self.EvaluatePoint(pos)
-            xs = float("{:.3f}".format(pos[0]))
-            ys = float("{:.3f}".format(pos[1]))
-            #print(list(pos), self.prev_targets)
-            if [xs, ys] not in self.prev_targets:
-                poss.append(pos)
-                scores.append(val)
-
-        if len(scores) == 0:
-            return [float('inf')], 0
-        
-        return poss[np.argmax(scores)], max(scores)
 
     def _aeGoalCallback(self, req):
         pass
@@ -266,160 +202,218 @@ class AutonomousExploration(Node):
         self.get_logger().info('Autonomous explorer was called')
 
         # Proccess the goal inputs
-        max_steps = goal.request.max_steps
+        maxSteps = goal.request.max_steps
         timeOut = goal.request.time_out
         method = goal.request.method
 
-        self.get_logger().info("max_steps = {}, timeOut = {}, method = ".format(max_steps, timeOut) + method)         
+        self.get_logger().info("max_steps = {}, timeOut = {}, method = ".format(maxSteps, timeOut) + method)         
         
         # Call the explore function
-        ## Use a thread otherwise the callbacks won't work
-        succeeded = self.Explore(timeOut, max_steps, method, goal)
-
+        succeeded = self.Explore(timeOut, maxSteps, method, goal)
+    
         # Update the status of goal
         if succeeded:
             self.get_logger().info("Autonomous exploration succeeded")
             goal.succeed()
         else:
-            self.get_logger().info("Autonomous exploration failed")
+            self.get_logger().warn("Autonomous exploration failed")
             goal.abort()
         
         result = AutonomousExplorationAction.Result()
         result.succeeded = succeeded
 
         return result
+    
+    def IsExplored(self, tar:np.array) -> bool:
+        ''' Check if the target is already explored'''
+        already_explored = False    
+        for el in self.exploredTargets:
+            if np.linalg.norm(el - tar) < 0.1:
+                already_explored = True
+                break
+        return already_explored
 
+    def PickTargetNear(self) -> float:
+        ''' Pick the closest exploration target '''
+        # TODO add attempts if the exploration target is not found 
+        # Sort the targets in increasing order
+        dists = [dt[2] for dt in self.VFCandidates_near]
+        indexes = [*range(len(dists))]
+        sorted_indexes = [x for _,x in sorted(zip(dists, indexes))]
 
-    def Explore(self, timeout : float, maxSteps : int, method : str, goal) -> bool:
+        # Check if the current target has already been explored
+        tar = []
+        for index in sorted_indexes:
+            tmp_tar = np.array([self.VFCandidates_near[index][0], self.VFCandidates_near[index][1]])
+            
+            if not self.IsExplored(tmp_tar):
+                tar = np.array(tmp_tar)
+                break
+        
+        self.get_logger().info("Closest target selected {}".format(tar))
+
+        return tar
+
+    def PickTargetFar(self) -> float:
+        ''' Pick the furthest exploration target '''
+        # TODO add attempts if the exploration target is not found 
+        # Sort the targets in increasing order
+        dists = [dt[2] for dt in self.VFCandidates_far]
+        indexes = [*range(len(dists))]
+        sorted_indexes = [x for _,x in sorted(zip(dists, indexes), reverse=True)]
+
+        # Check if the current target has already been explored
+        tar = []
+        for index in sorted_indexes:
+            tmp_tar = np.array([self.VFCandidates_far[index][0], self.VFCandidates_far[index][1]])
+
+            if not self.IsExplored(tmp_tar):
+                tar = np.array(tmp_tar)
+                break
+        
+        self.get_logger().info("Furthest target selected {}".format(tar))
+
+        return tar
+    
+    def EvaluatePoint(self, pt:float) -> float:
+        '''Compute the entropy in the given point'''
+        # Get the distance from the robot to the target
+        dist = pt[0]
+        area = pt[1]
+
+        # Compute the undiscovered area surrounding the target
+        if dist > 1:
+            return area ** np.log(dist + 0.0001)
+        else:
+            return -area ** np.log(dist + 0.0001)
+
+    def PickTargetMaxExpEntr(self):
+        ''' Use a cost function to estimate the best goal '''
+        if len(self.VFCandidates_center) == 0:
+            return [], 0
+        if len(self.VFCandidates_center) != len(self.VFCandidates_far):
+            self.get_logger().warn("Center {}, far {}".format(len(self.VFCandidates_center), len(self.VFCandidates_far)))
+
+        # Create a copy of the targets
+        targetCriteria = np.array(self.VFCandidates_center).copy()
+        targets = np.array(self.VFCandidates_far).copy()
+        scores = []
+        poss = []
+            
+        # Compute the score for each of the frontier goals
+        for cnt in range(len(targets)):
+            #self.get_logger().info("center {}, far {}".format(targetCriteria.shape, targets.shape))
+            dist = targetCriteria[cnt][2]
+            area = targetCriteria[cnt][3]
+            tar = np.array([targets[cnt][0], targets[cnt][1]])
+            if not self.IsExplored(np.array(tar[0], tar[1])):
+                scores.append(self.EvaluatePoint([dist, area]))
+                poss.append(np.array([tar[0], tar[1]]))
+        
+        # Return the most promissing candidate
+        if len(scores) == 0:
+            return [], 0
+        
+        return poss[np.argmax(scores)], max(scores)
+
+    def Explore(self, timeOut : float, maxSteps : int, method : str, goal) -> bool:
         ''' 
-            Perform autonomous exploration using the vision based frontier detection method
+            Perform autonomous exploration and travel to the nearest frontier point
             @timeout : Used to avoid the recovery mode of the robot when stuck in a position 
             @maxSteps : Maximum number of goals to explore
+            @method : Exploration target selection method-> near, far
             @status : Return value, False -> robot stuck, True -> maxSteps reached
         '''
-        cnt = 1
+
+        # Initialize loop variables
+        cnt = 0
         finishedExploration = False
-        stuck_cnt = 0
-        previously_explored_cnt = 0
-
-        # Create the feedback message
         feedback_msg = AutonomousExplorationAction.Feedback()
-
-        while cnt < maxSteps:            
-            # Check if the goal was cancelled
-            #if goal.is_cancelling():
-            #    self.get_logger().warn('Goal was cancelled')
-            #    break
-            
-            self.get_logger().info('--*-- < 1 > --*--')
-            self.get_logger().info('cnt {}'.format(cnt))
-            cur_target, cur_score = self.PickTargets()  
-
-            if cur_target[0] == float('inf'):
+        stuck_cnt = 0
+        while cnt < maxSteps:
+            # Check if there aren't more exploration targets
+            if len(self.VFCandidates_center) == 0:
                 self.get_logger().info('No more exploration candidates found')
                 finishedExploration = True
                 break
-            self.get_logger().info('--*-- < 2 > --*--')
-            
-            self.get_logger().info('Trying next target {}, score {}'.format(cur_target, cur_score))
-            previously_explored = self._sendNavGoal([cur_target[0], cur_target[1], 0.0])
-            if previously_explored:
-                previously_explored_cnt += 1
-                if previously_explored_cnt > 5:
-                    self.get_logger().warn('Manual control needed, exeeded number of previously explored points')
-                    break
+
+            # Get the exploration target
+            tar = []
+            if method == "near":
+                tar = self.PickTargetNear()
+            elif method == "far":
+                tar = self.PickTargetFar()
             else:
-                previously_explored_cnt = 0
-
-            self.get_logger().info('--*-- < 3 > --*--')
-
-            self.target_explored = False
-            self.recovery_attempts = 0
-            cancel_goal = False
-            ts = time.time()
-            exp_start = time.time()
-
-            # Store the position before the waypoint navigation started
-            pos_bef_exp = np.array([self.pos[0], self.pos[1]])
-            pos_bef = np.array([self.pos[0], self.pos[1]])
-
-            # Check if the next target is more promissiong than the current one            
-            while (rclpy.ok() and (not previously_explored) and (not cancel_goal)):
-                # Create the action feedback
-                feedback_msg.goal = [float(cur_target[0]), float(cur_target[1]), 0.0]
-                feedback_msg.pos = self.pos
-                feedback_msg.goal_id = cnt
-                feedback_msg.remaining_distance = self.remaining_distance
-                goal.publish_feedback(feedback_msg)
-                
-                pos_now = np.array([self.pos[0], self.pos[1]])
-                if time.time() - ts > timeout:
-                    ts = time.time()
-                    self.get_logger().info('--*--> Action is active : {}, distance travelled {}'.format(goal.is_active, np.linalg.norm(pos_bef - pos_now)))
-                    
-                    if np.linalg.norm(pos_bef - pos_now) < 0.1:
-                        cancel_goal = True
-                        self.get_logger().warn("Robot didn't move while navigating to the next waypoint")
-                    
-                    pos_bef = pos_now.copy()
-
-                # Check if the robot entered recovery mode too many times 
-                if self.recovery_attempts > 5:
-                    self.get_logger().warn('Robot entered recovery mode too many times, cancelling goal')
-                    cancel_goal = True
-                    break
-                
-                next_target, next_score = self.PickTargets()
-                cur_score = self.EvaluatePoint(cur_target)
-
-                if cur_score > 0.01:
-                    if next_score / cur_score > 2.5:
-                        self.target_explored = True
-                        self.get_logger().info('---*---> 3.3 <---*---')
-                else:
-                    if -0.2 < cur_score < -0.001:
-                        self.target_explored = True
-                        self.get_logger().info('---*---> 3.4 <---*---')
-
-                if self.target_explored:
-                    self.get_logger().info('---*---> 3.5 <---*---')
-
-                if self.target_explored and cnt < maxSteps:
-                    self.get_logger().info('Found better target {}, new score {}, currrent score {}'.format(next_target, next_score, cur_score))
-                    break
-                '''
-                if (time.time() - exp_start > timeout) :
-                    self.get_logger().info('Timeout reached cancelling goal')
-                    cancel_goal = True
-                    break
-                '''
-            self.get_logger().info('--*-- < 4 > --*--')
+                tar, self.curTarScore = self.PickTargetMaxExpEntr()
+                #self.get_logger().info("{}, {}".format(tar, score))
             
-            # Check if the robot moved within the exploration
-            pos_aft_exp = np.array([self.pos[0], self.pos[1]])
-            if np.linalg.norm(pos_aft_exp - pos_bef_exp) < 0.5 and cancel_goal:
-                cancel_goal = True
-                self.get_logger().error("Robot didn't move while navigating to the next waypoint")
+            # if there is a target sent it to the navigation controller
+            if len(tar) > 0:
+                self.get_logger().info("Navigating to {}".format(tar))
+                self.mapUpdated = False
+                self.curTar = np.array(tar)
+                self.exploredTargets.append(np.array(tar))
+                self._sendNavGoal(tar)
+                
+                ts = time.time()
+                ts2 = time.time()
+                pos_bef = np.array([self.pos[0], self.pos[1]])
+
+                # -1:Cancel navigation, 0:continue, 1:navigation succedded 2:found better goal
+                navigation_status = 0
+
+                # Wait until timeout or goal reached and publish feedback
+                while (rclpy.ok()) and (navigation_status == 0):
+                    # Create the action feedback
+                    feedback_msg.goal = [float(tar[0]), float(tar[1]), 0.0]
+                    feedback_msg.pos = [float(self.pos[0]), float(self.pos[1])]
+                    feedback_msg.goal_id = cnt
+                    feedback_msg.remaining_distance = self.remaining_distance
+                    goal.publish_feedback(feedback_msg)
+
+                    if np.linalg.norm(self.pos - self.curTar) < 0.4:
+                        self.get_logger().info("Reached goal, pos {}".format(self.pos))
+                        navigation_status = 1   
+                        break
+
+                    # Check if the robot stuck in the same position for too long
+                    pos_now = np.array([self.pos[0], self.pos[1]])
+                    if time.time() - ts > timeOut:
+                        ts = time.time() 
+                        if np.linalg.norm(pos_bef - pos_now) < 0.1:
+                            self.get_logger().warn("Robot didn't move while navigating to the next waypoint")
+                            navigation_status = -1
+                            break
+                        pos_bef = pos_now.copy()
+
+                    # Check if it took too long to go to the goal
+                    if (time.time() - ts2 > 60.0):
+                        self.get_logger().warn("Timeout reached, too much time spent travelling to goal")
+                        navigation_status = -1
+                        break
+
+                    # Check if a better goal exist, only for the Entopy method
+                    if method != 'near' and method != 'far':
+                        if self.curTarScore > 0.01:
+                            if self.newTarScore / self.curTarScore > 2.5:
+                                self.get_logger().info("Found better navigation target {}".format(self.newTar))
+                                navigation_status = 2
+                                break
+                cnt += 1
+            else:
+                self.get_logger().warn("No more " + method + " targets, exploration stopping")
+                finishedExploration = False
                 break
-            '''
-            if cancel_goal:
-                self.nav_goal_handle.cancel_goal_async()
-                #time.sleep(1)
-            '''
-            if self.target_explored:
+
+            # Check if the robot reached the goal
+            if navigation_status > 0:
                 stuck_cnt = 0
-            elif not previously_explored:
-                stuck_cnt += 1
-                self.get_logger().info('Target unreachable, {}'.format(stuck_cnt))
-                if stuck_cnt > 5:
-                    self.get_logger().warn('All candidates are unreachables manual control needed')
-                    break
             else:
-                stuck_cnt = 0
-                self.get_logger().info("Reached target")
-            self.get_logger().info('--*-- < 5 > --*--')
-            
-            cnt += 1
+                stuck_cnt += 1
+                if stuck_cnt == 4:
+                    self.get_logger().error("Robot stuck too many times, manual control needed")
+                    break
+
         # Return status
         status = finishedExploration
         if cnt == maxSteps:

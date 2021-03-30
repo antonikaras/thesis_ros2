@@ -39,7 +39,7 @@ class InteractiveMapDemo(Node):
         self.height = 1
 
         # Create subscribers
-        # /odom
+        ## /odom
         self.create_subscription(Odometry, 'odom', self._odomCallback, qos)
         ## /tf
         self.create_subscription(TFMessage, 'tf', self._tfCallback, qos)
