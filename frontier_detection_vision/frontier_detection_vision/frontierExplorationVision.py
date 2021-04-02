@@ -147,7 +147,7 @@ class FrontierDetectionVision(Node):
             pt = np.array(pt[0])
             area = self.GetArea(pt)
 
-            if area > avg_area:
+            if area >= avg_area:
                 # Convert the point from map space to world
                 x = pt[1] * self.mapResolution + self.mapOrigin[0]
                 y = pt[0] * self.mapResolution + self.mapOrigin[1]
@@ -243,12 +243,13 @@ class FrontierDetectionVision(Node):
             area = cv.contourArea(contour)
             _, _,w,h = cv.boundingRect(contour)
             area2 = w * h
-            #self.get_logger().info("contour length {}, area {}, area2 {}".format(len(contour), area, area2))
+            ratio = min(w / h, h / w)
+            #self.get_logger().info("contour length {}, area {}, area2 {}, ratio {}, area2 / ratio {}".format(len(contour), area, area2, ratio, area2 / ratio))
             #if len(contour) > 2:                
-            if area2 > 100:
+            if (area2 / ratio) > 200:
                 # Retain only the points that have more than 50% unexplored neighbours
                 filteredPoints = self.FilterClusterPoints(contour)
-                #self.get_logger().info("area2 {}, filtered points {}".format(area2, len(filteredPoints)))
+                #self.get_logger().info("area2 / ratio {}, filtered points {}".format(area2 / ratio, len(filteredPoints)))
                 if len(filteredPoints) > 0:
                     # Find the closest, furthest and center point of the cluster
                     clSpecs.append(self.ComputeClusterSpecs(filteredPoints))

@@ -61,9 +61,14 @@ source devel/setup.bash
     3. Contains the rosbridge_msgs used to connect ros2-ros-unity
 * frontier_detection_vision:
     1. Contains the vision based frontier detection algorithm
-* thesis_gazebo:
-    1. Contains the worlds and models used in the simulation
-    2. Gazebo environments from ```https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps.git``` were used
+* simulation_assets
+    * thesis_gazebo:
+        1. Contains the worlds and models used in the simulation
+        2. Gazebo environments from ```https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps.git``` were used
+        3. Velodyne VLP16 LiDAR was based on ``` https://github.com/ToyotaResearchInstitute/velodyne_simulator ```
+    * velodyne_gazebo_plugins
+        1. Contains the plugin for the velodyne LiDAR
+        2. Copied from ``` https://github.com/ToyotaResearchInstitute/velodyne_simulator ```
 * interactive_map_tester:
     1. Contains the nodes for saving the map and interactive map
     2. Contains the nodes for loading/displaying the map & interactive map
@@ -71,6 +76,7 @@ source devel/setup.bash
     [TODO] i.  Contains a demo using the interactive map
     
     [TODO] ii. Add map save/load path as input
+
 
 ## Launch the simulation
 
