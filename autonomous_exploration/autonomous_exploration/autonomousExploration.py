@@ -55,7 +55,7 @@ class AutonomousExploration(Node):
         # Setup rate
         self.rate = self.create_rate(2)
 
-        # Create the navigation2 action client
+        # Create the navigation2 action client                        
         self.nav2_action_Client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.nav2_action_Client.wait_for_server()
 

@@ -21,3 +21,6 @@
 [submodule "thesis_simulation_worlds/Dataset-of-Gazebo-Worlds-Models-and-Maps"]
 	path = thesis_simulation_worlds/Dataset-of-Gazebo-Worlds-Models-and-Maps
 	url = https://github.com/mlherd/Dataset-of-Gazebo-Worlds-Models-and-Maps.git
+[submodule "velodyne_simulator"]
+	path = velodyne_simulator
+	url = https://github.com/ToyotaResearchInstitute/velodyne_simulator

@@ -1,0 +1,125 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+    <model name="velodyne_vlp16">
+
+    <link name="velodyne_base_link">
+      <pose>0 0 0.03585 0 0 0</pose>
+      <inertial>
+        <mass>0.83</mass>
+        <inertia>
+          <ixx>0.000908059</ixx>
+          <iyy>0.000908059</iyy>
+          <izz>0.001104962</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="base_collision">
+        <geometry>
+          <origin rpy="0 0 0" xyz="0 0 0.03585"/>
+          <cylinder>
+            <radius>.0516</radius>
+            <length>.0717</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="base_visual">
+        <geometry>
+          <mesh>
+            <uri>model://velodyne/meshes/VLP16_base_1.dae</uri>
+          </mesh>
+        </geometry>
+        <geometry>
+          <mesh>
+            <uri>model://velodyne/meshes/VLP16_base_2.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+    
+    <link name="velodyne_base_scan">
+      <pose>0 0 0.03585 0 0 0</pose>
+      <inertial>
+        <mass>0.01</mass>
+        <inertia>
+          <ixx>1e-7</ixx>
+          <iyy>1e-7</iyy>
+          <izz>1e-7</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="top_collision">
+        <geometry>
+          <cylinder>
+            <radius>0.0516</radius>
+            <length>0.0717</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="top_visual">
+        <pose>0 0 .0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://velodyne/meshes/VLP16_scan.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+        <sensor type="gpu_ray" name="laser">
+        <pose>0 0 0.0 0.0 0 0</pose>
+        <visualize>false</visualize>
+        <update_rate>10</update_rate>
+        <ray>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+
+          <scan>
+            <horizontal>
+              <samples>1875</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14</min_angle>
+              <max_angle> 3.14</max_angle>
+            </horizontal>
+            <vertical>
+                <samples>16</samples>
+                <resolution>1</resolution>
+                <min_angle>-0.2617993878</min_angle>
+                <max_angle> 0.2617993878</max_angle>
+              </vertical>
+          </scan>
+
+          <range>
+            <min>0.3</min>
+            <max>70</max>
+            <resolution>0.001</resolution>
+          </range>
+        </ray>
+          
+          <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_laser.so">
+            <topicName>points2</topicName>
+            <frameName>velodyne_base_scan</frameName>
+            <organize_cloud>false</organize_cloud>
+            <min_range>0.9</min_range>
+            <max_range>70</max_range>
+            <gaussianNoise>0.008</gaussianNoise>
+          </plugin>
+          
+      </sensor>
+      
+    </link>
+
+    <joint name="velodyne_base_scan_joint" type="fixed" >
+      <origin xyz="0 0 0.03585" rpy="0 0 0" />
+      <parent>velodyne_base_link</parent>
+      <child>velodyne_base_scan</child>
+    </joint>
+   
+    
+    </model>
+</sdf>
