@@ -156,6 +156,8 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
     ```ros2 run nav2_map_server map_saver_cli -f ~/map --ros-args --remap map:=/map ```
 * Saved interactive map
     ``` ros2 run interactive_map_tester saveInteactiveMap ```
+* Create a rosbag with the map and robot_pos messages
+    ``` ros2 bag record /rosbridge_msgs_publisher/map /rosbridge_msgs_publisher/robot_pos ```
 
 ## Troubleshooting - Possible issues
 
