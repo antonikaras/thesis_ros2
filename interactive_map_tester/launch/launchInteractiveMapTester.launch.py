@@ -14,6 +14,7 @@ def launch_setup(context, *args, **kwargs):
     use_sim_time = LaunchConfiguration('use_sim_time')
     gui = LaunchConfiguration('gui')
     turtlebot3_model = LaunchConfiguration('turtlebot3_model').perform(context)
+    nav2_params_name = LaunchConfiguration('turtlebot3_model', default=turtlebot3_model).perform(context)
     world = LaunchConfiguration('world').perform(context)
 
     # Add the turtlebot3 model
@@ -27,10 +28,11 @@ def launch_setup(context, *args, **kwargs):
     )
     
     # Add the navigation2 launch file
-    navigation2_dir = get_package_share_directory('turtlebot3_navigation2')
+    nav2_param_dir = os.path.join(get_package_share_directory('autonomous_exploration'), nav2_params_name + '.yaml')
+    navigation2_dir = get_package_share_directory('autonomous_exploration')
     navigation2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(navigation2_dir + '/launch/navigation2.launch.py'),
-        launch_arguments={'use_sim_time': use_sim_time, 'map': map}.items()
+        PythonLaunchDescriptionSource(navigation2_dir + '/turtlebot3_navigation2.launch.py'),
+        launch_arguments={'use_sim_time': use_sim_time, 'params': nav2_param_dir}.items()
     ) 
 
     # Add the rosbridge_msgs publisher
@@ -54,8 +56,9 @@ def generate_launch_description():
             'turtlebot3_world.yaml')
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument('nav2_parms',default_value='burger', description="name of the nav2 params"),
         DeclareLaunchArgument('turtlebot3_model', default_value='burger'),
-        DeclareLaunchArgument('world', default_value='burger_new_house'),
+        DeclareLaunchArgument('world', default_value='new_house'),
         DeclareLaunchArgument("gui", default_value="True", description="Launch Gazebo UI?"),
         DeclareLaunchArgument("map", default_value=default_map, description="navigation_map"),
         OpaqueFunction(function = launch_setup)
