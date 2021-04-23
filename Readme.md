@@ -72,6 +72,9 @@ source devel/setup.bash
 * interactive_map_tester:
     1. Contains the nodes for saving the map and interactive map
     2. Contains the nodes for loading/displaying the map & interactive map
+* pointcloud2_filter:
+    1. Creates a particle filter that filters the rays that touch the ground
+    2. Developed using : ```https://github.com/ros-perception/perception_pcl/issues/323 ```
     
     [TODO] i.  Contains a demo using the interactive map
     
@@ -158,6 +161,8 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
     ``` ros2 run interactive_map_tester saveInteactiveMap ```
 * Create a rosbag with the map and robot_pos messages
     ``` ros2 bag record /rosbridge_msgs_publisher/map /rosbridge_msgs_publisher/robot_pos ```
+* Start the pointcloud2 filter node
+    ``` ros2 run pointcloud2_filter pcl_filter --ros-args -p hBeams:=1875 -p vBeams:=16 ```
 
 ## Troubleshooting - Possible issues
 

@@ -1,20 +1,23 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>interactive_map_tester</name>
+  <name>pointcloud2_filter</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="antonikaras1995@hotmail.com">antony</maintainer>
   <license>BSD 2-Clause License</license>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>pcl_conversions</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
 
   <export>
-    <exec_depend>rclpy</exec_depend>
-    <build_type>ament_python</build_type>
-    <exec_depend>autonomous_exploration_msgs</exec_depend>
+    <build_type>ament_cmake</build_type>
   </export>
+  
 </package>
