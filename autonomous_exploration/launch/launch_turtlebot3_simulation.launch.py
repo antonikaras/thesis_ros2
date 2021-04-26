@@ -97,22 +97,35 @@ def launch_setup(context, *args, **kwargs):
                 remappings=[('cloud_in', pointCloud_to_laserScan_topic)
                             ],
                 parameters=[{
-                    'target_frame': 'velodyne_base_scan',
-                    'transform_tolerance': 0.01,
-                    'min_height': 0.01,
-                    'max_height': 3.0,
-                    'angle_min': -3.1415,  # -M_PI/2
-                    'angle_max': 3.1415,  # M_PI/2
-                    'angle_increment': 0.0033504,  # M_PI/360.0
-                    'scan_time': 0.005,
-                    'range_min': 0.1,
-                    'range_max': 70.0,
-                    'use_inf': True,
-                    'inf_epsilon': 1.0
+                    'target_frame'          : 'velodyne_base_scan',
+                    'transform_tolerance'   : 0.01,
+                    'min_height'            : 0.01,
+                    'max_height'            : 3.0,
+                    'angle_min'             : -3.1415,  # -M_PI/2
+                    'angle_max'             : 3.1415,  # M_PI/2
+                    'angle_increment'       : 0.0033504,  # M_PI/360.0
+                    'scan_time'             : 0.005,
+                    'range_min'             : 0.1,
+                    'range_max'             : 70.0,
+                    'use_inf'               : True,
+                    'inf_epsilon'           : 1.0
                 }],
                 name='pointcloud_to_laserscan'
             )
-        return [world_launch, mapping_package_launch, navigation2_launch, autonomous_exploration_action_server, frontier_detection, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map, pointCloud_to_laserScan]
+        
+        # Pointcloud filter node
+        pointcloud_filter = Node(package='pointcloud2_filter',
+                                     executable='pcl_filter',
+                                     parameters=[{
+                                         'hBeams'           : 1875,
+                                         'vBeams'           : 16,
+                                         'vFoV'             : 0.2617993878,
+                                         'hFoV'             : 3.1415,
+                                         'robotBaseFrame'   : "velodyne_base_link",
+                                         'sensorScanFrame'  : 'velodyne_base_scan'
+                                     }])
+
+        return [world_launch, pointcloud_filter, mapping_package_launch, navigation2_launch, pointCloud_to_laserScan, autonomous_exploration_action_server, frontier_detection, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
     else:
         return [world_launch, mapping_package_launch, navigation2_launch, autonomous_exploration_action_server, frontier_detection, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
 

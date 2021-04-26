@@ -38,8 +38,8 @@ options = {
  TRAJECTORY_BUILDER_2D.motion_filter.max_angle_radians = math.rad(0.1)
 
 MAP_BUILDER.use_trajectory_builder_2d = true
-TRAJECTORY_BUILDER_2D.min_z = 0.1
-TRAJECTORY_BUILDER_2D.max_z = 6.0
+-- TRAJECTORY_BUILDER_2D.min_z = 0.1
+ TRAJECTORY_BUILDER_2D.max_z = 4.0
 TRAJECTORY_BUILDER_2D.min_range = 0.1
 TRAJECTORY_BUILDER_2D.max_range = 70
 TRAJECTORY_BUILDER_2D.missing_data_ray_length = 100
