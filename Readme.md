@@ -163,6 +163,8 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
     ``` ros2 bag record /rosbridge_msgs_publisher/map /rosbridge_msgs_publisher/robot_pos ```
 * Start the pointcloud2 filter node
     ``` ros2 run pointcloud2_filter pcl_filter --ros-args -p hBeams:=1875 -p vBeams:=16 ```
+* Use the ros1_bridge for all the topics
+    ``` ros2 run ros1_bridge dynamic_bridge --bridge-all-2to1-topics ```
 
 ## Troubleshooting - Possible issues
 

@@ -72,6 +72,6 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument('gui', default_value='true'),
         DeclareLaunchArgument('turtlebot3_model', default_value='burger'),
-        DeclareLaunchArgument('world', default_value='burger_new_house'),
+        DeclareLaunchArgument('world', default_value='new_house'),
         OpaqueFunction(function = launch_setup)
         ])

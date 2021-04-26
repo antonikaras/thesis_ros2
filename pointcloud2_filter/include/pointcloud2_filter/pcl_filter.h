@@ -6,12 +6,14 @@
 #include <chrono>
 #include <memory>
 #include <algorithm>
+#include <cmath>
 
 // ROS2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include "tf2_msgs/msg/tf_message.hpp"
+#include "builtin_interfaces/msg/time.hpp"
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -47,6 +49,8 @@ class PCLFilter : public rclcpp::Node
         
         tf2_ros::Buffer buffer_;
         tf2_ros::TransformListener listener_;
+        builtin_interfaces::msg::Time simTime;
+        //rclcpp::TimerBase::SharedPtr timer_;
 
     public:
 
@@ -76,10 +80,11 @@ class PCLFilter : public rclcpp::Node
 
             // Create subscribers
             //// /points2
-            pc2_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>("points2", 10, std::bind(&PCLFilter::_pointCloud2_callback, this, std::placeholders::_1));
+            pc2_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>("velodyne/scan", 10, std::bind(&PCLFilter::_pointCloud2_callback, this, std::placeholders::_1));
             //// /tf_static
             tf_static_sub = this->create_subscription<tf2_msgs::msg::TFMessage>("tf_static", 10, std::bind(&PCLFilter::_tfStatic_callback, this, std::placeholders::_1));
-            /*
+            /*//// /tf
+            timer_ = this->create_wall_timer(500ms, std::bind(&PCLFilter::_tf_callback, this));
             // Read the transformation between the robot's base and the lidar scanner
             try
             {
@@ -92,8 +97,8 @@ class PCLFilter : public rclcpp::Node
             }    
             */
             // Create publishers
-            //// /points2_filtered
-            pcl_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points2_filtered", 10);
+            //// /points2
+            pcl_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points2", 10);
 
         }
        
