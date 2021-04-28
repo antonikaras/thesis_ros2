@@ -129,6 +129,7 @@ source devel/setup.bash
 * Build the ros1_bridge following the instructions above.
 * Add a new entry on the file *ros_unity/config/rosbridge_params.yaml*, on the catkin_ws, containing the name of the topic, message type and queue
 instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
+* Compile the bridge using ```colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure```
 * To send the new message to unity update the file *ros_unity/src/server_endpoint.py*, on the catkin_ws, by adding a new entry on the *tcp_server.start*
  part of the code
 
@@ -172,3 +173,4 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
     Solution : https://github.com/ros2/ros2/issues/451 
 * Change file permissions 
 ```sudo chmod -R o+rw docker-workspace/```
+* Errors while compiling the ros1_bridge : ``` https://github.com/ros2/rosbag2_bag_v2/issues/32 ```

@@ -39,6 +39,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ExplorationTargets.msg"
   "msg/MapData.msg"
   "msg/PosData.msg"
+  "msg/PointGroup.msg"
+  "msg/PointGroups.msg"
   "action/AutonomousExplorationAction.action"
  )
 

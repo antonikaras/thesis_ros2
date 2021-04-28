@@ -8,3 +8,15 @@
   ros1_message_name: 'PosData'
   ros2_package_name: 'autonomous_exploration_msgs'
   ros2_message_name: 'PosData'
+
+-
+  ros1_package_name: 'ros_unity_msgs'
+  ros1_message_name: 'PointGroup'
+  ros2_package_name: 'autonomous_exploration_msgs'
+  ros2_message_name: 'PointGroup'
+
+-
+  ros1_package_name: 'ros_unity_msgs'
+  ros1_message_name: 'PointGroups'
+  ros2_package_name: 'autonomous_exploration_msgs'
+  ros2_message_name: 'PointGroups'
