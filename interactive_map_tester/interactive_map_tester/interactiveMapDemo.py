@@ -1,4 +1,5 @@
 # Import ROS2 libraries
+from interactive_map_tester.pointGroup import PointsGroup
 import rclpy
 from rclpy.node import Node
 from cv_bridge import CvBridge, CvBridgeError
@@ -9,7 +10,7 @@ from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import Image
 from nav_msgs.msg import Odometry
 from tf2_msgs.msg import TFMessage
-from autonomous_exploration_msgs.msg import MapData
+from autonomous_exploration_msgs.msg import MapData, PointGroup, PointGroups
 
 # Import other libraries
 import numpy as np
@@ -34,9 +35,10 @@ class InteractiveMapDemo(Node):
         self.interactiveMap = []
         self.mapOrigin = [0.0, 0.0]
         self.mapResolution = 0.05
-        self.robotInArea = 0
+        self.robotInAreas = []
         self.width = 1
         self.height = 1
+        self.pointGroups = []
 
         # Create subscribers
         ## /odom
@@ -45,10 +47,27 @@ class InteractiveMapDemo(Node):
         self.create_subscription(TFMessage, 'tf', self._tfCallback, qos)
         ## /maps_publisher/interactive_map
         self.create_subscription(MapData, 'maps_publisher/interactive_map', self._interactiveMapCallback, qos)
+        ## /rosbridge_msgs_unity/point_groups
+        self.create_subscription(PointGroups, 'rosbridge_msgs_unity/point_groups', self._pointGroupsCallback, qos)
 
         # Create a timer to check if the robot is in one of the predefined areas
         self.create_timer(.5, self.RobotInAreaChecker)  # unit: s
-        
+    
+    def _pointGroupsCallback(self, msg : PointGroups) -> None:
+        """ Read the point group msg published either from ROS2 or Unity and check if the robot is inside """
+
+        groupID = 0
+        for group in msg.groups:
+            if len(self.pointGroups) - 1 < groupID:
+                self.pointGroups.append(PointsGroup(group)) 
+            else:
+                numOfPoints = len(group.map_pos)
+                if numOfPoints != self.pointGroups[groupID].numOfPoints:
+                    self.pointGroups[groupID] = PointsGroup(group)
+            
+            groupID += 1
+
+
     def _tfCallback(self, data:TFMessage):
         ''' Read the tf data and find the transformation between odom and map '''
 
@@ -96,6 +115,23 @@ class InteractiveMapDemo(Node):
     
     def RobotInAreaChecker(self):
         ''' Function that checks if the robot is inside one of the predefined areas '''
+        areas = []
+        
+        # Process all the point groups and check if the robot is inside the convexhull
+        for group in self.pointGroups:
+            if group.InConvexHull(self.pos[0:2]):
+                areas.append(group.groupID)
+        
+        for area in areas:
+            if area not in self.robotInAreas:
+                self.get_logger().info("Robot entered area {}".format(area))
+        
+        for area in self.robotInAreas:
+            if area not in areas:
+                self.get_logger().info("Robot exited area {}".format(area))
+        
+        self.robotInAreas = areas
+        '''
         area = self.interactiveMap[self.width - self.mapPos[0], self.height - self.mapPos[1]]
 
         if area != self.robotInArea:
@@ -105,6 +141,8 @@ class InteractiveMapDemo(Node):
                 self.get_logger().info("Robot exited area {}".format(self.robotInArea))
 
             self.robotInArea = area
+        '''
+        pass
 
 ###################################################################################################
 def main(args=None):
