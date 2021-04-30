@@ -14,9 +14,9 @@ class PointsGroup:
     def __init__(self, pG : PointGroup) -> None:
         
         # Store the map related data
-        self.mapOrigin = [pG.map_specs[0], pG.map_specs[1]]
-        self.mapDims = [pG.map_specs[2], pG.map_specs[3]]
-        self.mapResolution = pG.map_specs[4]
+        self.mapOrigin = pG.map_origin
+        self.mapDims = pG.map_dims
+        self.mapResolution = pG.map_resolution
 
         # Store the group related data
         self.groupID = pG.group_id

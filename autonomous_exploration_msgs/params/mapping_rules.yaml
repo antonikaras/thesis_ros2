@@ -20,3 +20,10 @@
   ros1_message_name: 'PointGroups'
   ros2_package_name: 'autonomous_exploration_msgs'
   ros2_message_name: 'PointGroups'
+
+-
+  ros1_package_name: 'ros_unity_msgs'
+  ros1_message_name: 'Nav2Waypoints'
+  ros2_package_name: 'autonomous_exploration_msgs'
+  ros2_message_name: 'Nav2Waypoints'
+  
