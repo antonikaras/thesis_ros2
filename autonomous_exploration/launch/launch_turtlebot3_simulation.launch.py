@@ -127,7 +127,7 @@ def launch_setup(context, *args, **kwargs):
 
         return [world_launch, pointcloud_filter, mapping_package_launch, navigation2_launch, pointCloud_to_laserScan, autonomous_exploration_action_server, frontier_detection, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
     else:
-        return [world_launch, mapping_package_launch, navigation2_launch, autonomous_exploration_action_server, frontier_detection, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
+        return [world_launch, mapping_package_launch, navigation2_launch, autonomous_exploration_action_server, frontier_detection, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map] 
 
     #return [world_launch, mapping_package_launch, navigation2_launch, autonomous_exploration_action_server, rosbridge_msgs_pub, map_saver_launch, visualize_interactive_map]
 

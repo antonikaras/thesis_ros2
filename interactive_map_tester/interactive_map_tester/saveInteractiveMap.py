@@ -5,12 +5,13 @@ from rclpy.qos import QoSProfile
 
 # Import message files
 from sensor_msgs.msg import Image
-from autonomous_exploration_msgs.msg import MapData
+from autonomous_exploration_msgs.msg import MapData, PointGroup, PointGroups
 from nav_msgs.msg import OccupancyGrid
 
 # Import other libraries
 import numpy as np
 import cv2 as cv
+import yaml
 
 class SaveInteractiveMap(Node):
     """
@@ -26,12 +27,16 @@ class SaveInteractiveMap(Node):
         self.mapReceived = False
         self.interMapReceived = False
         self.mapsSaved = False
+        self.pointGroupsReceived = False
+        self.pointGroupsDict = []
 
         # Create subscribers
         # /map
         self.create_subscription(OccupancyGrid, 'map', self._mapCallback, qos)
         ## /rosbridge_msgs_unity/interactive_map
         self.create_subscription(MapData, "rosbridge_msgs_unity/interactive_map", self._interactiveMapCallback, qos)
+        ## /rosbridge_msgs_unity/point_groups
+        self.create_subscription(PointGroups, 'rosbridge_msgs_unity/point_groups', self._pointGroupsCallback, qos)
 
         # Create publishers
         ## /interactive_map/image
@@ -41,7 +46,27 @@ class SaveInteractiveMap(Node):
         self.create_timer(2.0, self.saveMaps)  # unit: s
 
         self.get_logger().info("Interactive map saver was initiated")
+    
+    def _pointGroupsCallback(self, msg : PointGroups) -> None:
+        """ 
+            Read the point group msg published either from ROS2 or Unity and 
+            convert it to a dictionary so that it can be saved as a .yaml file 
+        """
+
+        self.pointGroupsDict = []
+        for group in msg.groups:            
+            tmp_dict = [{'map_pos'     : [tmp for tmp in group.map_pos], 
+                        'group_id'     : group.group_id,
+                        'map_origin'   : [group.map_origin[0], group.map_origin[1]],
+                        'map_dims'     : [group.map_dims[0], group.map_dims[1]],
+                        'map_resol'    : group.map_resolution,
+                        'assoc_fl'     : group.associated_file}]
+            
+            self.pointGroupsDict.append(tmp_dict)
         
+        self.pointGroupsReceived = True
+            
+
     def _mapCallback(self, data:OccupancyGrid):
         self.map = np.array(data.data)#.reshape(data.info.width, data.info.height)
         self.map_width = data.info.width
@@ -68,7 +93,7 @@ class SaveInteractiveMap(Node):
     def saveMaps(self):
         ''' Once both maps received store the interactive map as an image'''
         
-        if not(self.mapReceived and self.interMapReceived and not self.mapsSaved):
+        if not(self.mapReceived and self.interMapReceived and self.pointGroupsReceived and not self.mapsSaved):
             return
 
         map = np.array(self.map).copy()
@@ -102,6 +127,11 @@ class SaveInteractiveMap(Node):
         # Save the maps
         cv.imwrite('/home/antony/interactive_map.pgm', interactiveMap)
         cv.imwrite('/home/antony/interactive_map_color.jpg', map_img)
+
+        # Save the group point as a .yaml file
+        with open(r'/home/antony/point_groups.yaml', 'w') as file :
+            doc = yaml.dump(self.pointGroupsDict, file)
+
         self.mapsSaved = True
 
         self.get_logger().info('Maps Saved')

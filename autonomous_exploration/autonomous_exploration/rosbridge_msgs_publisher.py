@@ -10,16 +10,13 @@ from rclpy.executors import MultiThreadedExecutor
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid as OccG
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Int8MultiArray
-from nav2_msgs.action import NavigateToPose
+from nav2_msgs.action import FollowWaypoints
 from tf2_msgs.msg import TFMessage
-from autonomous_exploration_msgs.msg import MapData, PosData
+from autonomous_exploration_msgs.msg import MapData, PosData, Nav2Waypoints
 
 # Import other libraries
 import numpy as np
 from scipy.spatial.transform import Rotation
-import time
-import threading
 
 class RosbridgeMsgsPublisher(Node):
 
@@ -46,8 +43,8 @@ class RosbridgeMsgsPublisher(Node):
         self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.top_callback_group)
         ## /map
         self.create_subscription(OccG, 'map', self._mapCallback, qos, callback_group=self.top_callback_group)
-        ## /ros_unity/nav_goal
-        self.create_subscription(PosData, 'rosbridge_msgs_unity/nav_goal', self._navGoalCallback, qos, callback_group=self.top_callback_group)
+        ## /rosbridge_msgs_unity/nav_goals
+        self.create_subscription(Nav2Waypoints, 'rosbridge_msgs_unity/nav_goals', self._navGoalCallback, qos, callback_group=self.top_callback_group)
         ## /tf
         self.create_subscription(TFMessage, 'tf', self._tfCallback, qos, callback_group=self.top_callback_group)
 
@@ -58,7 +55,7 @@ class RosbridgeMsgsPublisher(Node):
         self.rosbridgePos_pub = self.create_publisher(PosData, '/rosbridge_msgs_publisher/robot_pos', qos)
 
         # Create the navigation2 action client
-        self.nav2ActionClient = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.nav2ActionClient = ActionClient(self, FollowWaypoints, 'FollowWaypoints')
         self.nav2ActionClient.wait_for_server()
 
         # Publish the rosbridge_msgs
@@ -92,32 +89,37 @@ class RosbridgeMsgsPublisher(Node):
         self.get_logger().info('Result: {0}'.format(result.result))
 
     def _navGoalFeedbackCallback(self, data):
-        self.remaining_distance = data.feedback.distance_remaining
+        pass
+        #self.remaining_distance = data.feedback.distance_remaining
 
-    def _navGoalCallback(self, data:PosData):
+    def _navGoalCallback(self, data:Nav2Waypoints):
         ''' Read the target position sent by unity and call the navigation2 action server  with this goal'''
+        self.get_logger().info("In")
+        goal_msg = FollowWaypoints.Goal()
 
-        goal_msg = NavigateToPose.Goal()
+        for wp in data.waypoints:
 
-        # Generate the target goal
-        goal = PoseStamped()
-        goal.header.frame_id = 'map'
-        goal.header.stamp = self.get_clock().now().to_msg()
+            # Generate the target goal
+            goal = PoseStamped()
+            goal.header.frame_id = 'map'
+            goal.header.stamp = self.get_clock().now().to_msg()
 
-        # Position part
-        goal.pose.position.x = data.x
-        goal.pose.position.y = data.y
+            # Position part
+            goal.pose.position.x = wp.x
+            goal.pose.position.y = wp.y
 
-        # Orientation part
-        rot = Rotation.from_euler('xyz', [0.0, 0.0, 0.0])
-        quat = rot.as_quat()
-        goal.pose.orientation.x = quat[0]
-        goal.pose.orientation.y = quat[1]    
-        goal.pose.orientation.z = quat[2]
-        goal.pose.orientation.w = quat[3]
+            # Orientation part
+            rot = Rotation.from_euler('xyz', [0.0, 0.0, wp.yaw])
+            quat = rot.as_quat()
+            goal.pose.orientation.x = quat[0]
+            goal.pose.orientation.y = quat[1]    
+            goal.pose.orientation.z = quat[2]
+            goal.pose.orientation.w = quat[3]
 
-        goal_msg.pose = goal
+            goal_msg.poses.append(goal)
 
+        #goal_msg.pose = goal
+        self.get_logger().info("Sending nav2 waypoints")
         future = self.nav2ActionClient.send_goal_async(goal_msg, feedback_callback = self._navGoalFeedbackCallback)
         future.add_done_callback(self._navGoalResponseCallback)
 

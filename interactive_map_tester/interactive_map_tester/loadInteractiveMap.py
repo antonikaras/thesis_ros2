@@ -9,7 +9,7 @@ from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import Image
 from nav_msgs.msg import Odometry
 from tf2_msgs.msg import TFMessage
-from autonomous_exploration_msgs.msg import MapData
+from autonomous_exploration_msgs.msg import MapData, PointGroups, PointGroup
 from nav_msgs.msg import OccupancyGrid
 
 # Import other libraries
@@ -33,6 +33,7 @@ class LoadInteractiveMap(Node):
         self.pos = [0.0, 0.0, 0.0]
         self.mapOdomOffset = []
         self.map_pos = [0, 0]
+        self.pointGroups = PointGroups()
 
         # Create subscribers
         # /odom
@@ -47,6 +48,8 @@ class LoadInteractiveMap(Node):
         self.map_pub = self.create_publisher(MapData, '/maps_publisher/map', qos)
         ## /maps_publisher/interactive_map_color
         self.interactiveMapColor_pub = self.create_publisher(Image, "/maps_publisher/interactive_map_color", qos)
+        ## /rosbridge_msgs_pub/point_groups
+        self.pointGroups_pub = self.create_publisher(PointGroups, "/rosbridge_msgs_pub/point_groups", qos)
 
         # Load the maps from the .yaml files
         self.LoadMaps()
@@ -90,6 +93,7 @@ class LoadInteractiveMap(Node):
 
     def LoadMaps(self):
         '''Load the maps from the yaml files'''
+        
         # Load the regular map
         self.resolution = 0.0
         self.map_origin = []
@@ -134,9 +138,29 @@ class LoadInteractiveMap(Node):
 
         # Reshape the map image to width * height * 3
         self.interactiveMapColor = np.reshape(self.interactiveMapColor, (self.width, self.height, 3))
+        
+        # Load the point groups
+        with open(r'/home/antony/point_groups.yaml') as file:
+            groups = yaml.full_load(file)
+            for group in groups:
+                pg = PointGroup()
+                pg.group_id = group[0]['group_id']
+                #tmp = []
+                #for pos in group[0]['map_pos']:
+                #    tmp.append(pos[0])
+                #    tmp.append(pos[1])
+                pg.map_pos = group[0]['map_pos']
+                pg.map_origin = group[0]['map_origin']
+                pg.map_dims = group[0]['map_dims']
+                pg.map_resolution = group[0]['map_resol']
+                pg.associated_file = group[0]['assoc_fl']
+
+                self.pointGroups.groups.append(pg)
+
 
     def MapsPublisher(self):
         ''' Publish the map, interactive map and interactive_map_color '''
+        
         # Don't publish the map in case the initial pose is not published
         if (len(self.mapOdomOffset) == 0):
             return
@@ -161,6 +185,9 @@ class LoadInteractiveMap(Node):
 
         # Publish the interactive map with colors
         self.interactiveMapColor_pub.publish(self.bridge.cv2_to_imgmsg(interactiveMapColor, "rgb8"))
+        
+        # Publish the point groups
+        self.pointGroups_pub.publish(self.pointGroups)
 
 ###################################################################################################
 def main(args=None):
