@@ -18,9 +18,21 @@ void PCLFilter::_pointCloud2_callback(const sensor_msgs::msg::PointCloud2::Share
     {   
         // Multiply the thresshold value with a constant depending on the length of the ray
         // The furthest the ray is the less aqurate it is and the 'ground' needs to be lifted more
-        float distConst = 0.98;
-        
+        float distConst = 0.95;
+        /*
         // Convert the ray location to the polar coordinate system
+        float planar_dist = sqrt(temp_cloud[p].x * temp_cloud[p].x + temp_cloud[p].y * temp_cloud[p].y);
+        float z_offset = tan(pitch) * planar_dist;
+        float ang = atan2(temp_cloud[p].y, temp_cloud[p].x);
+        float sgn = (0 < ang && ang < M_PI) ? 1: -1;
+        //RCLCPP_INFO(this->get_logger(), "cur z '%f' Z offset '%f'", temp_cloud[p].z, tan(pitch) * planar_dist);
+        if (temp_cloud[p].z < -distConst * (filterThres + sgn * z_offset))
+        {
+          temp_cloud[p].x = 0.0;
+          temp_cloud[p].y = 0.0;
+          temp_cloud[p].z = 0.0;          
+        }
+        */
         float dist = sqrt(temp_cloud[p].x * temp_cloud[p].x + temp_cloud[p].y * temp_cloud[p].y + temp_cloud[p].z * temp_cloud[p].z);
         float ang = atan2(temp_cloud[p].y, temp_cloud[p].x) * 180.0 / M_PI;
 
@@ -33,6 +45,7 @@ void PCLFilter::_pointCloud2_callback(const sensor_msgs::msg::PointCloud2::Share
             else
                 distConst = 0.80;
         }  
+        
         //RCLCPP_INFO(this->get_logger(), "x '%f', y '%f', z '%f'", temp_cloud[p].x, temp_cloud[p].y, temp_cloud[p].z); 
         if (temp_cloud[p].z < -distConst * filterThres)
         {
@@ -79,7 +92,16 @@ void PCLFilter::_tfStatic_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg
     }
 }
 
-void PCLFilter::_imu_callback(const sensor_msgs::msg::imu::SharedPtr msg)
+void PCLFilter::_imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
-    int i = 1;
+    // Convert the orientation quaternion to rpy
+    tf2::Quaternion q(
+        msg->orientation.x,
+        msg->orientation.y,
+        msg->orientation.z,
+        msg->orientation.w
+    );
+    tf2::Matrix3x3 m(q);
+    double roll, yaw;
+    m.getRPY(roll, pitch, yaw);
 }
