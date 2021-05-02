@@ -83,13 +83,15 @@ source devel/setup.bash
 
 ## Launch the simulation
 
+### Autonomous exploration mode
+
 * Terminal 1:
     ```
     source /opt/ros/foxy/setup.bash
     cd ~/colcon_ws/
     [if needed] source /opt/ros/foxy/setup.bash
     [optionally] colcon build --symlink-install --packages-select <package-name>
-    src2
+    source install/setup.bash
     ros2 launch autonomous_exploration launch_turtlebot3_simulation.launch.py [optionally gui:=false to hide gazebo]
     ```
 * Terminal 2:
@@ -120,6 +122,20 @@ source devel/setup.bash
     ```
     * Start the unity app
 
+* Save the maps :
+    ```
+        ros2 run interactive_map_tester saveInteactiveMap
+    ```
+
+### Use the interactive map to move around
+
+* Terminal 1 - Launch the simulation:
+```
+    cd ~/colcon_ws/
+    source install/setup.bash
+    ros2 launch interactive_map_tester launchInteractiveMapTester.launch.py
+```
+
 ## Transport additional messages between ROS2 and ROS
 
 * Add the new message file on the package *autonomous_exploration_msgs*
@@ -130,6 +146,7 @@ source devel/setup.bash
 * Add a new entry on the file *ros_unity/config/rosbridge_params.yaml*, on the catkin_ws, containing the name of the topic, message type and queue
 instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
 * Compile the bridge using ```colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure```
+* If an error occurs try again ``` colcon build --symlink-install --packages-select ros1_bridge ```
 * To send the new message to unity update the file *ros_unity/src/server_endpoint.py*, on the catkin_ws, by adding a new entry on the *tcp_server.start*
  part of the code
 

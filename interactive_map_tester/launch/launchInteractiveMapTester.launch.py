@@ -47,7 +47,20 @@ def launch_setup(context, *args, **kwargs):
     visualize_interactive_map = Node(package='interactive_map_tester',
                                      executable='visualizeInteractiveMap')
 
-    return [world_launch, navigation2_launch, rosbridge_msgs_pub, visualize_interactive_map, publish_maps]
+    # Add the cartographer launch file
+    cartographer_dir = get_package_share_directory('autonomous_exploration')
+    interactiveMapTester_dir = get_package_share_directory('interactive_map_tester')
+    cartographer_configuration = turtlebot3_model + '.lua'
+    cartographer_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(cartographer_dir + '/turtlebot3_cartographer.launch.py'),
+        launch_arguments={'use_sim_time': use_sim_time,
+                          'cartographer_config_dir' : interactiveMapTester_dir,
+                          'configuration_basename' : cartographer_configuration,
+                          'cartographer_mode' : 'localization'}.items()
+        )
+    
+
+    return [world_launch, navigation2_launch, cartographer_launch, rosbridge_msgs_pub, visualize_interactive_map, publish_maps]
 
 def generate_launch_description():
     default_map = os.path.join(

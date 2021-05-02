@@ -14,6 +14,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include "tf2_msgs/msg/tf_message.hpp"
 #include "builtin_interfaces/msg/time.hpp"
+#include "sensor_msgs/msg/imu.hpp"
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -25,11 +26,13 @@ class PCLFilter : public rclcpp::Node
         void _pointCloud2_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) const;
         //void _tf_callback(const tf2_msgs::msg::TFMessage msg) const;
         void _tfStatic_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg);
+        void _imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);
 
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pc2_sub;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_pub_;
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_sub;
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_static_sub;
+        rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub;
 
         // Horizontal number of laser beams
         int hBeams;
@@ -43,6 +46,8 @@ class PCLFilter : public rclcpp::Node
         std::string robotBaseFrame;
         // Sensor scan frame name
         std::string sensorScanFrame;
+        // pitch angle -> used to the pointcloud filter
+        float pitch;
 
         // Distance from the robot to the ground
         float filterThres = 0;
@@ -83,6 +88,9 @@ class PCLFilter : public rclcpp::Node
             pc2_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>("velodyne/scan", 10, std::bind(&PCLFilter::_pointCloud2_callback, this, std::placeholders::_1));
             //// /tf_static
             tf_static_sub = this->create_subscription<tf2_msgs::msg::TFMessage>("tf_static", 10, std::bind(&PCLFilter::_tfStatic_callback, this, std::placeholders::_1));
+            //// /imu
+            imu_sub = this->create_subscription<sensor_msgs::msg::imu>("imu", 10, std::bind(&PCLFilter::_imu_callback, this, std::placeholders::_1));
+
             /*//// /tf
             timer_ = this->create_wall_timer(500ms, std::bind(&PCLFilter::_tf_callback, this));
             // Read the transformation between the robot's base and the lidar scanner
