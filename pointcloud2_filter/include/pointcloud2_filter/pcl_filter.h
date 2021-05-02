@@ -47,7 +47,7 @@ class PCLFilter : public rclcpp::Node
         // Sensor scan frame name
         std::string sensorScanFrame;
         // pitch angle -> used to the pointcloud filter
-        float pitch;
+        double pitch;
 
         // Distance from the robot to the ground
         float filterThres = 0;
@@ -89,7 +89,7 @@ class PCLFilter : public rclcpp::Node
             //// /tf_static
             tf_static_sub = this->create_subscription<tf2_msgs::msg::TFMessage>("tf_static", 10, std::bind(&PCLFilter::_tfStatic_callback, this, std::placeholders::_1));
             //// /imu
-            imu_sub = this->create_subscription<sensor_msgs::msg::imu>("imu", 10, std::bind(&PCLFilter::_imu_callback, this, std::placeholders::_1));
+            imu_sub = this->create_subscription<sensor_msgs::msg::Imu>("imu", 10, std::bind(&PCLFilter::_imu_callback, this, std::placeholders::_1));
 
             /*//// /tf
             timer_ = this->create_wall_timer(500ms, std::bind(&PCLFilter::_tf_callback, this));
