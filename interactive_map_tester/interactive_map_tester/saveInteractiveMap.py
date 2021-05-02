@@ -7,6 +7,7 @@ from rclpy.qos import QoSProfile
 from sensor_msgs.msg import Image
 from autonomous_exploration_msgs.msg import MapData, PointGroup, PointGroups
 from nav_msgs.msg import OccupancyGrid
+from nav2_msgs.srv import SaveMap
 
 # Import other libraries
 import numpy as np
@@ -41,6 +42,12 @@ class SaveInteractiveMap(Node):
         # Create publishers
         ## /interactive_map/image
         self.interactiveMap_Imagepub = self.create_publisher(Image, "/interactive_map/image", qos)
+
+        # Create service clients
+        ## /map_server/save_map
+        self.saveMap_srv = self.create_client(SaveMap, '/map_saver/save_map')
+        if not self.saveMap_srv.wait_for_service(timeout_sec=10.0):
+            self.get_logger().warn('SaveMap service not available')
 
         # Create a timer to store the interactive map
         self.create_timer(2.0, self.saveMaps)  # unit: s
@@ -131,6 +138,22 @@ class SaveInteractiveMap(Node):
         # Save the group point as a .yaml file
         with open(r'/home/antony/point_groups.yaml', 'w') as file :
             doc = yaml.dump(self.pointGroupsDict, file)
+        
+        # Call the map saver service
+        req = SaveMap.Request()
+        req.map_topic = "map"
+        req._map_url = "/home/antony/my_map.yaml"
+        req.image_format = "/home/antony/my_map.pgm"
+        req.map_mode =  "trinary"
+        req.free_thresh = 0.25
+        req.occupied_thresh = 0.65
+        fut = self.saveMap_srv.call_async(req)
+        if fut.done:
+            try:
+                response = fut.result()
+            except Exception as e:
+                self.get_logger().warn('Service call failed %r' % (e,))
+
 
         self.mapsSaved = True
 

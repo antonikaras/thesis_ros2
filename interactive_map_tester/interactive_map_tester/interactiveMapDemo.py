@@ -86,7 +86,7 @@ class InteractiveMapDemo(Node):
             return
         
         pos = msg.pose.pose.position
-
+        
         #self.pos[0:2] = [pos.x + self.mapOdomOffset[0], pos.y + self.mapOdomOffset[1]]
         self.pos[0:2] = [pos.x + self.mapOdomOffset[0], pos.y + self.mapOdomOffset[1]]
 
@@ -131,6 +131,7 @@ class InteractiveMapDemo(Node):
                 self.get_logger().info("Robot exited area {}".format(area))
         
         self.robotInAreas = areas
+        
         '''
         area = self.interactiveMap[self.width - self.mapPos[0], self.height - self.mapPos[1]]
 

@@ -17,60 +17,61 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
-from launch.actions import IncludeLaunchDescription
+from ament_index_python.packages import get_package_share_directory
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import ThisLaunchFileDir
+from launch_ros.actions import Node
 
 TURTLEBOT3_MODEL = os.environ['TURTLEBOT3_MODEL']
 
-def generate_launch_description():
+def launch_setup(context, *args, **kwargs):
+
+    # Define input variables
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    #turtlebot3_cartographer_prefix = get_package_share_directory('turtlebot3_cartographer')
     turtlebot3_cartographer_prefix = get_package_share_directory('autonomous_exploration')
     cartographer_config_dir = LaunchConfiguration('cartographer_config_dir', default=os.path.join(
                                                   turtlebot3_cartographer_prefix))
     configuration_basename = LaunchConfiguration('configuration_basename',
                                                  default= TURTLEBOT3_MODEL + '.lua')
-    #                                             default='turtlebot3_vlp16_3d.lua')
+    cartographer_mode = LaunchConfiguration('cartographer_mode', default='mapping').perform(context)
 
     resolution = LaunchConfiguration('resolution', default='0.05')
     publish_period_sec = LaunchConfiguration('publish_period_sec', default='1.0')
 
-    return LaunchDescription([
-        DeclareLaunchArgument(
-            'use_sim_time',
-            default_value='false',
-            description='Use simulation (Gazebo) clock if true'),
-
-
-        Node(
+    # Cartographer_node
+    cartographer_node = Node(
             package='cartographer_ros',
             executable='cartographer_node',
             name='cartographer_node',
             output='screen',
             parameters=[{'use_sim_time': use_sim_time}],
             arguments=['-configuration_directory', cartographer_config_dir,
-                       '-configuration_basename', configuration_basename]),
-
-        Node(
+                       '-configuration_basename', configuration_basename])
+    
+    # Cartographer_grid_node
+    cartographer_grid_node = Node(
             package='cartographer_ros',
             executable='occupancy_grid_node',
             name='occupancy_grid_node',
             output='screen',
             parameters=[{'use_sim_time': use_sim_time}],
-            arguments=['-resolution', resolution, '-publish_period_sec', publish_period_sec]),
+            arguments=['-resolution', resolution, '-publish_period_sec', publish_period_sec])
         
-        DeclareLaunchArgument(
-            'resolution',
-            default_value=resolution,
-            description='Resolution of a grid cell in the published occupancy grid'),
+    # Start the cartographer nodes depending on the mode
+    if cartographer_mode == "mapping":
+        return [cartographer_node, cartographer_grid_node]
+    elif cartographer_mode == "localization":
+        return [cartographer_node]
 
-        DeclareLaunchArgument(
-            'publish_period_sec',
-            default_value=publish_period_sec,
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument('resolution', default_value='0.05',
+            description='Resolution of a grid cell in the published occupancy grid'),
+        DeclareLaunchArgument('publish_period_sec', default_value='1.0',
             description='OccupancyGrid publishing period'),
-        
-    ])
+        DeclareLaunchArgument('cartographer_mode', default_value='mapping'),
+
+        OpaqueFunction(function = launch_setup)
+        ])

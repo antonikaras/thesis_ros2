@@ -106,12 +106,7 @@ class PointsGroup:
         #  > 0 -> to the left
         relation = (a[0] - c[0]) * (b[1] - c[1]) - (b[0] - c[0]) * (a[1] - c[1])
 
-        if relation > 0:
-            return 1
-        elif relation < 0:
-            return -1
-        else:
-            return 0
+        return relation
     
     def InConvexHull(self, c : list) -> bool:
         """ Check if the point is inside the convex hull """
@@ -128,9 +123,17 @@ class PointsGroup:
             a = self.convexHullPoints[i]
             b = self.convexHullPoints[i + 1]
 
+            #print(a, b, c, self.groupID, self.CompareLinePoint(a, b, c))
+            
             # Check if it's left or right of the line ab
-            if (self.CompareLinePoint(a, b, c) >0):
+            if (self.CompareLinePoint(a, b, c) > 0):
                 inConvexHull = False
                 break
+        
+        # Check for the last line segment
+        a = self.convexHullPoints[-1]
+        b = self.convexHullPoints[0]
+        if (self.CompareLinePoint(a, b, c) > 0):
+            inConvexHull = False
 
         return inConvexHull

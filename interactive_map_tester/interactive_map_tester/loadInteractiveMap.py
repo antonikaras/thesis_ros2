@@ -11,6 +11,7 @@ from nav_msgs.msg import Odometry
 from tf2_msgs.msg import TFMessage
 from autonomous_exploration_msgs.msg import MapData, PointGroups, PointGroup
 from nav_msgs.msg import OccupancyGrid
+from nav2_msgs.srv import LoadMap
 
 # Import other libraries
 import numpy as np
@@ -48,8 +49,14 @@ class LoadInteractiveMap(Node):
         self.map_pub = self.create_publisher(MapData, '/maps_publisher/map', qos)
         ## /maps_publisher/interactive_map_color
         self.interactiveMapColor_pub = self.create_publisher(Image, "/maps_publisher/interactive_map_color", qos)
-        ## /rosbridge_msgs_pub/point_groups
-        self.pointGroups_pub = self.create_publisher(PointGroups, "/rosbridge_msgs_pub/point_groups", qos)
+        ## /rosbridge_msgs_publisher/point_groups
+        self.pointGroups_pub = self.create_publisher(PointGroups, "/rosbridge_msgs_publisher/point_groups", qos)
+
+        # Create service clients
+        ## /map_server/load_map
+        self.loadMap_srv = self.create_client(LoadMap, '/map_server/load_map')
+        if not self.loadMap_srv.wait_for_service(timeout_sec=10.0):
+            self.get_logger().warn('LoadMap service not available')
 
         # Load the maps from the .yaml files
         self.LoadMaps()
@@ -105,10 +112,10 @@ class LoadInteractiveMap(Node):
                     self.resolution = float(doc)
                 elif item == 'image':
                     map = cv.imread(doc, -1)
+
                     # Align the map and the interactive map
                     map = np.rot90(np.fliplr(map), 1)
                     map = np.flip(map, 0)
-                    
                     self.width, self.height = map.shape
                     self.map = -1 * np.ones_like(map)
                     self.map[map == 0] = 100
@@ -156,7 +163,23 @@ class LoadInteractiveMap(Node):
                 pg.associated_file = group[0]['assoc_fl']
 
                 self.pointGroups.groups.append(pg)
-
+        
+        # Call the load map service
+        req = LoadMap.Request()
+        req._map_url = "/home/antony/map.yaml"
+        fut = self.loadMap_srv.call_async(req)
+        '''
+        if fut.done():
+            try:
+                response = fut.result()
+                print(response)
+            except Exception as e:
+                self.get_logger().warn('Service call failed %r' % (e,))
+            else:
+                res = {0:"Success", 1:"Map does not exist", 2:"Invalid map data", 3:"Invalid map metadata", 255:"Undifined failute"}
+                
+                #self.get_logger().info("Service results : " + res[response])
+        '''
 
     def MapsPublisher(self):
         ''' Publish the map, interactive map and interactive_map_color '''
