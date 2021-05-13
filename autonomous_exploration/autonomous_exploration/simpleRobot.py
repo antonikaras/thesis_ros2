@@ -5,6 +5,8 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from rclpy.qos import QoSProfile
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 
 # Import message files
 from geometry_msgs.msg import PoseStamped
@@ -36,29 +38,39 @@ class SimpleRobot(Node):
         self.remaining_distance = 0.0
         self.mapOdomOffset = [0.0, 0.0]
         qos = QoSProfile(depth=10)
+        self.navGoalResult = -1
+        self.autoExplorerResult = -1
+
+        # Create callback group
+        ## Topic callback group
+        self.top_callback_group = ReentrantCallbackGroup()
+        ## Action callback group
+        self.act_callback_group = ReentrantCallbackGroup()
+        ## Timer callback group
+        self.timer_callback_group = ReentrantCallbackGroup()
 
         # Create subscribers
         # /odom
-        self.create_subscription(Odometry, 'odom', self._odomCallback, qos)
+        self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.top_callback_group)
         ## /map
-        self.create_subscription(OccG, 'map', self._mapCallback, qos)
+        self.create_subscription(OccG, 'map', self._mapCallback, qos, callback_group=self.top_callback_group)
         ## /tf
-        self.create_subscription(TFMessage, 'tf', self._tfCallback, qos)
+        self.create_subscription(TFMessage, 'tf', self._tfCallback, qos, callback_group=self.top_callback_group)
 
         # Create publishers
         # /goal_pose
         self.goalPose_pub = self.create_publisher(PoseStamped, '/goal_pose', qos)
 
         # Create the navigation2 action client
-        self.nav2ActionClient = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.nav2ActionClient = ActionClient(self, NavigateToPose, 'navigate_to_pose', callback_group=self.act_callback_group)
         self.nav2ActionClient.wait_for_server()
 
         # Create the autonomous exploration action client
-        self.aeActionClient = ActionClient(self, AutonomousExplorationAction, 'autonomous_exploration')
+        self.aeActionClient = ActionClient(self, AutonomousExplorationAction, 'autonomous_exploration', callback_group=self.act_callback_group)
         self.aeActionClient.wait_for_server()
 
         # Read the keyboard inputs
-        self.create_timer(0.50, self.ReadInput)  # unit: s
+        self.create_timer(0.50, self.ReadInput, callback_group=self.timer_callback_group)  # unit: s
 
     def _tfCallback(self, data:TFMessage):
         ''' Read the tf data and find the transformation between odom and map '''
@@ -100,7 +112,8 @@ class SimpleRobot(Node):
 
     def _navGoalResultCallback(self, future:rclpy.Future):
         result = future.result().result
-        self.get_logger().info('Result: {0}'.format(result.result))
+        self.navGoalResult = result.result
+        #self.get_logger().info('Result: {0}'.format(result.result))
 
     def _navGoalFeedbackCallback(self, data):
         self.remaining_distance = data.feedback.distance_remaining
@@ -151,9 +164,9 @@ class SimpleRobot(Node):
         self._get_result_future.add_done_callback(self._aeGoalResultCallback)
     
     def _aeGoalResultCallback(self, future:rclpy.Future):
-        pass
-        #result = future.result().result
-        #self.get_logger().info('Result: {0}'.format(result.result))
+        result = future.result().result
+        self.autoExplorerResult = result.succeeded
+        #self.get_logger().info('Result auto_explorer: {0}'.format(result.succeeded))
     
     def _aeFeedbackCallback(self, data):
         self.remaining_distance = data.feedback.remaining_distance
@@ -180,6 +193,23 @@ class SimpleRobot(Node):
         future.add_done_callback(self._aeGoalResponseCallback)
 
     def ReadInput(self):
+        
+        # Print the results action calls results if their status changed
+        if self.navGoalResult != -1:
+            if self.navGoalResult:
+                self.get_logger().info("Send goal succeded")
+            else:
+                self.get_logger().warn("Send goal failed")  
+            self.navGoalResult = -1
+
+        if self.autoExplorerResult != -1:
+            if self.autoExplorerResult:
+                self.get_logger().info("Autonomous exploration succeded")
+            else:
+                self.get_logger().warn("Autonomous exploration failed")  
+            self.get_logger().info('Goal id: {}'.format(self.goal_id + 1))
+            self.autoExplorerResult = -1
+
         inp = input('Type your command > ')
         inp = inp.split()
         if len(inp) == 0:
@@ -207,15 +237,15 @@ class SimpleRobot(Node):
                 self.Explore(timeOut = 10.0, maxSteps = int(inp[2]), method = method)
             else:
                 self.Explore(timeOut = 10.0, maxSteps = 50, method = method)
-
-
+            
 def main(args=None):
     rclpy.init(args=args)
 
     SR = SimpleRobot()
+    executor = MultiThreadedExecutor()
 
     try:
-        rclpy.spin(SR)
+        rclpy.spin(SR, executor)
     except KeyboardInterrupt:
         pass
     #rclpy.spin_until_future_complete(SR, )

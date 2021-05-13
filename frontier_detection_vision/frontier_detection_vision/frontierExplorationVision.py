@@ -261,7 +261,7 @@ class FrontierDetectionVision(Node):
         map_img = cv.UMat.get(map_img)
 
         # Rotate the image for visualization ease
-        map_img = np.rot90(np.fliplr(map_img), 2)
+        map_img = np.rot90(np.fliplr(frontiers.astype(np.uint8)), 2)
         map_img = np.flip(map_img, 1)
         self.map_image_pub.publish(self.bridge.cv2_to_imgmsg(map_img, 'mono8'))
 

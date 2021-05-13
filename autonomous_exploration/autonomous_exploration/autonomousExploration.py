@@ -12,7 +12,7 @@ from nav_msgs.msg import OccupancyGrid as OccG
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
 from tf2_msgs.msg import TFMessage
-from autonomous_exploration_msgs.msg import ExplorationTargets, ExplorationTarget
+from autonomous_exploration_msgs.msg import ExplorationTargets, ExplorationTarget, PosData
 from autonomous_exploration_msgs.action import AutonomousExplorationAction
 
 # Import other libraries
@@ -33,6 +33,10 @@ class AutonomousExploration(Node):
         self.top_callback_group = ReentrantCallbackGroup()
         ## Action callback group
         self.act_callback_group = ReentrantCallbackGroup()
+        ## Timer callback group
+        self.timer_callback_group = ReentrantCallbackGroup()
+        ## Publisher callback group
+        self.pub_callback_group = ReentrantCallbackGroup()
 
         # Initialize the variables
         self.VFCandidates_near = []
@@ -69,6 +73,10 @@ class AutonomousExploration(Node):
         ## /map
         self.create_subscription(OccG, 'map', self._mapCallback, qos)
         
+        # Setup publishers
+        ## /rosbridge_msgs_publisher/current_target 
+        self.curTar_pub = self.create_publisher(PosData, '/rosbridge_msgs_publisher/current_target', qos, callback_group=self.pub_callback_group)
+
         # Create the action server
         self.auto_explore_action_server = ActionServer(self, AutonomousExplorationAction, 'autonomous_exploration', 
                                                         execute_callback = self._aeActionCallback, 
@@ -76,7 +84,22 @@ class AutonomousExploration(Node):
                                                         cancel_callback = self._aeCancelCallback)
         #                                                goal_callback = self._aeGoalCallback,                      
 
+        # Publish the exploration target
+        self.create_timer(1.0, self.pubExplorationTarget, callback_group=self.timer_callback_group)  # unit: s
+
         self.get_logger().info('Autonomous explorer was initiated successfully')
+
+    def pubExplorationTarget(self) -> None:
+        curTar = PosData()
+
+        if len(self.curTar) > 0:
+            curTar.x = float(self.curTar[0])
+            curTar.y = float(self.curTar[1])
+            curTar.yaw = float(1)
+        else:
+            curTar.yaw = float(-1)
+
+        self.curTar_pub.publish(curTar)
 
     def _mapCallback(self, data:OccG):
         
@@ -195,6 +218,7 @@ class AutonomousExploration(Node):
 
     def _aeCancelCallback(self, req):
         self.get_logger().info('Autonomous exploration received cancel request')
+        self.nav_goal_handle.cancel_goal_async()
         return CancelResponse.ACCEPT
 
     async def _aeActionCallback(self, goal):
@@ -226,8 +250,11 @@ class AutonomousExploration(Node):
     
     def IsExplored(self, tar:np.array) -> bool:
         ''' Check if the target is already explored'''
+        #self.get_logger().info("Target IsExplored--> {}".format(tar))
         already_explored = False    
         for el in self.exploredTargets:
+            #self.get_logger().info("--------------> IsExplored Dist{}".format(np.linalg.norm(el - tar)))
+            #self.get_logger().info("TmpTar {}, cur Tar {}".format(el, tar))
             if np.linalg.norm(el - tar) < 0.1:
                 already_explored = True
                 break
@@ -306,7 +333,8 @@ class AutonomousExploration(Node):
             dist = targetCriteria[cnt][2]
             area = targetCriteria[cnt][3]
             tar = np.array([targets[cnt][0], targets[cnt][1]])
-            if not self.IsExplored(np.array(tar[0], tar[1])):
+            #self.get_logger().info("Target --> {}".format(tar))
+            if not self.IsExplored(tar):
                 scores.append(self.EvaluatePoint([dist, area]))
                 poss.append(np.array([tar[0], tar[1]]))
         
@@ -395,23 +423,27 @@ class AutonomousExploration(Node):
                     # Check if a better goal exist, only for the Entopy method
                     if method != 'near' and method != 'far':
                         if self.curTarScore > 0.01:
-                            if self.newTarScore / self.curTarScore > 2.5:
+                            if self.newTarScore / self.curTarScore > 2.0:
                                 self.get_logger().info("Found better navigation target {}".format(self.newTar))
                                 navigation_status = 2
+                                self.curTar = []
                                 break
                 cnt += 1
             else:
                 self.get_logger().warn("No more " + method + " targets, exploration stopping")
                 finishedExploration = False
+                self.curTar = []
                 break
 
             # Check if the robot reached the goal
             if navigation_status > 0:
                 stuck_cnt = 0
+                self.curTar = []
             else:
                 stuck_cnt += 1
                 if stuck_cnt == 4:
                     self.get_logger().error("Robot stuck too many times, manual control needed")
+                    self.curTar = []
                     break
 
         # Return status
