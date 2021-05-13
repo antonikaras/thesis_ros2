@@ -57,7 +57,7 @@ def launch_setup(context, *args, **kwargs):
     # Choose the mapping algorithm
     if mapping_package == 'cartographer':
         mapping_package_launch = cartographer_launch
-        pointCloud_to_laserScan_topic = 'scan_matched_points2'
+        pointCloud_to_laserScan_topic = 'points2'
     else:
         mapping_package_launch = slam_toolbox_launch
         pointCloud_to_laserScan_topic = 'points2'

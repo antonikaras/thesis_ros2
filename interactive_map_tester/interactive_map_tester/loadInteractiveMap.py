@@ -3,6 +3,7 @@ import rclpy
 from rclpy.node import Node
 from cv_bridge import CvBridge, CvBridgeError
 from rclpy.qos import QoSProfile
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 # Import message files
@@ -28,6 +29,12 @@ class LoadInteractiveMap(Node):
 
         super().__init__("maps_publisher")
 
+        # Create callback group
+        ## Topic callback group
+        self.top_callback_group = ReentrantCallbackGroup()
+        ## Action callback group
+        self.act_callback_group = ReentrantCallbackGroup()
+        
         # Initialize the variables
         self.bridge = CvBridge()
         qos = QoSProfile(depth=10)
@@ -38,31 +45,33 @@ class LoadInteractiveMap(Node):
 
         # Create subscribers
         # /odom
-        self.create_subscription(Odometry, 'odom', self._odomCallback, qos)
+        self.create_subscription(Odometry, 'odom', self._odomCallback, qos, callback_group=self.top_callback_group)
         ## /tf
-        self.create_subscription(TFMessage, 'tf', self._tfCallback, qos)
+        self.create_subscription(TFMessage, 'tf', self._tfCallback, qos, callback_group=self.top_callback_group)
 
         # Create publishers
         ## /maps_publisher/interactive_map 
-        self.interactiveMap_pub = self.create_publisher(MapData, "/maps_publisher/interactive_map", qos)
+        self.interactiveMap_pub = self.create_publisher(MapData, "/maps_publisher/interactive_map", qos, callback_group=self.top_callback_group)
         ## /maps_publisher/map
-        self.map_pub = self.create_publisher(MapData, '/maps_publisher/map', qos)
+        self.map_pub = self.create_publisher(MapData, '/maps_publisher/map', qos, callback_group=self.top_callback_group)
         ## /maps_publisher/interactive_map_color
-        self.interactiveMapColor_pub = self.create_publisher(Image, "/maps_publisher/interactive_map_color", qos)
+        self.interactiveMapColor_pub = self.create_publisher(Image, "/maps_publisher/interactive_map_color", qos, callback_group=self.top_callback_group)
         ## /rosbridge_msgs_publisher/point_groups
-        self.pointGroups_pub = self.create_publisher(PointGroups, "/rosbridge_msgs_publisher/point_groups", qos)
+        self.pointGroups_pub = self.create_publisher(PointGroups, "/rosbridge_msgs_publisher/point_groups", qos, callback_group=self.top_callback_group)
 
         # Create service clients
         ## /map_server/load_map
-        self.loadMap_srv = self.create_client(LoadMap, '/map_server/load_map')
+        self.loadMap_srv = self.create_client(LoadMap, '/map_server/load_map', callback_group=self.act_callback_group)
         if not self.loadMap_srv.wait_for_service(timeout_sec=10.0):
             self.get_logger().warn('LoadMap service not available')
 
         # Load the maps from the .yaml files
         self.LoadMaps()
 
+        self.get_logger().info("Interactive map loader was initiated successfully")
+
         # Create a timer to publish the interactive map
-        self.create_timer(.5, self.MapsPublisher)  # unit: s
+        self.create_timer(1.0, self.MapsPublisher)  # unit: s
 
     def _tfCallback(self, data:TFMessage):
         ''' Read the tf data and find the transformation between odom and map '''
@@ -96,7 +105,6 @@ class LoadInteractiveMap(Node):
         # Convert the robot pose to map index
         self.map_pos[0] = int((self.pos[0] - self.map_origin[0]) / self.resolution)
         self.map_pos[1] = int((self.pos[1] - self.map_origin[1]) / self.resolution)
-
 
     def LoadMaps(self):
         '''Load the maps from the yaml files'''
@@ -220,7 +228,7 @@ def main(args=None):
     executor = MultiThreadedExecutor()
 
     try:
-        rclpy.spin(LIM)
+        rclpy.spin(LIM, executor)
     except KeyboardInterrupt:
         pass
     #rclpy.spin_until_future_complete(SR, )

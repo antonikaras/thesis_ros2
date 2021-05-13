@@ -129,14 +129,6 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-      <plugin name='object_disposal_plugin' filename='libObjectDisposalPlugin.so'>
-        <contact_sensor_name>object_disposal_contact</contact_sensor_name>
-        <contacting_box_topic>/ariac/waiting_shipping_box</contacting_box_topic>
-        <activation_topic>/ariac/drone_collection_zone/activate_deletion</activation_topic>
-        <contact_side_normal>1 0 0</contact_side_normal>
-        <disposal_pose>-7.5 -10 -0.5 0 0 0</disposal_pose>
-        <update_rate>5</update_rate>
-      </plugin>
       <pose frame=''>-0.093674 -2.00167 0 0 -0 0</pose>
     </model>
     <model name='workcell'>
@@ -3463,7 +3455,7 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-      <pose frame=''>-3.17751 12.7045 0 0 -0 0</pose>
+      <pose frame=''>7.24 9.95 0 0 -0 1.59</pose>
     </model>
     <model name='grey_wall'>
       <static>1</static>
@@ -3690,59 +3682,7 @@
       </link>
       <pose frame=''>28.5426 -9.49059 0 0 -0 0</pose>
     </model>
-    <model name='unit_box'>
-      <pose frame=''>29.0343 -8.13636 0.5 0 -0 0</pose>
-      <link name='link'>
-        <inertial>
-          <mass>1</mass>
-          <inertia>
-            <ixx>0.166667</ixx>
-            <ixy>0</ixy>
-            <ixz>0</ixz>
-            <iyy>0.166667</iyy>
-            <iyz>0</iyz>
-            <izz>0.166667</izz>
-          </inertia>
-          <pose frame=''>0 0 0 0 -0 0</pose>
-        </inertial>
-        <collision name='collision'>
-          <geometry>
-            <box>
-              <size>1 0.237495 1.1455</size>
-            </box>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <visual name='visual'>
-          <geometry>
-            <box>
-              <size>1 0.237495 1.1455</size>
-            </box>
-          </geometry>
-          <material>
-            <script>
-              <name>Gazebo/Grey</name>
-              <uri>file://media/materials/scripts/gazebo.material</uri>
-            </script>
-          </material>
-        </visual>
-        <self_collide>0</self_collide>
-        <enable_wind>0</enable_wind>
-        <kinematic>0</kinematic>
-      </link>
-    </model>
+    
     <model name='Dumpster'>
       <link name='link'>
         <collision name='collision'>
@@ -3797,7 +3737,7 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-      <pose frame=''>15.4331 -7.69939 0 0 -0 0</pose>
+      <pose frame=''>27.61 -8.41 0 0 -0 3.14</pose>
     </model>
     <state world_name='factory'>
       <sim_time>2074 141000000</sim_time>
@@ -3864,16 +3804,7 @@
           <wrench>1e-06 0 -1.30012 0 -0 0</wrench>
         </link>
       </model>
-      <model name='Dumpster'>
-        <pose frame=''>15.4936 -8.63659 0.001377 -1e-06 -0 -3.12244</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose frame=''>15.4936 -8.63659 0.001377 -1e-06 -0 -3.12244</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0.000171 -0.008904 2.04105 0.176128 0.123702 0</acceleration>
-          <wrench>0.000171 -0.008904 2.04105 0 -0 0</wrench>
-        </link>
-      </model>
+  
       <model name='cabinet'>
         <pose frame=''>13.0394 -9.13497 0.037072 0 0 -1.55676</pose>
         <scale>1 1 1</scale>
@@ -4234,16 +4165,6 @@
           <wrench>0 -0 -0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='shipping_container_ariac'>
-        <pose frame=''>3.8815 7.91617 0 0 0 -1.54836</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose frame=''>3.8815 7.91617 0 0 0 -1.54836</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0 0 0 0 -0 0</acceleration>
-          <wrench>0 0 0 0 -0 0</wrench>
-        </link>
-      </model>
       <model name='table'>
         <pose frame=''>19.256 -0.907717 0 0 -0 0</pose>
         <scale>1 1 1</scale>
@@ -4434,16 +4355,7 @@
           <wrench>0.000344 -5e-06 -7.6e-05 0 -0 0</wrench>
         </link>
       </model>
-      <model name='unit_box'>
-        <pose frame=''>28.3607 -8.3366 0.467165 0 -0 0.000112</pose>
-        <scale>1 2.05199 0.934331</scale>
-        <link name='link'>
-          <pose frame=''>28.3607 -8.3366 0.467165 0 -0 0.000112</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>8.98708 -0.021577 9.68914 0.0446 0.417992 0.00159</acceleration>
-          <wrench>8.98708 -0.021577 9.68914 0 -0 0</wrench>
-        </link>
-      </model>
+
       <model name='wooden_case'>
         <pose frame=''>16.9031 -8.59915 -0.001057 0 -0.000431 0</pose>
         <scale>1 1 1</scale>
