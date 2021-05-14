@@ -124,11 +124,11 @@ class InteractiveMapDemo(Node):
         
         for area in areas:
             if area not in self.robotInAreas:
-                self.get_logger().info("Robot entered area {}".format(area))
+                self.get_logger().info("Robot entered area " + self.pointGroups[area].associated_file)
         
         for area in self.robotInAreas:
             if area not in areas:
-                self.get_logger().info("Robot exited area {}".format(area))
+                self.get_logger().info("Robot exited area " + self.pointGroups[area].associated_file)
         
         self.robotInAreas = areas
         

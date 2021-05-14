@@ -59,8 +59,20 @@ def launch_setup(context, *args, **kwargs):
                           'cartographer_mode' : 'localization'}.items()
         )
     
+    # Pointcloud filter node
+    pointcloud_filter = Node(package='pointcloud2_filter',
+                                 executable='pcl_filter',
+                                 parameters=[{
+                                     'hBeams'           : 1875,
+                                     'vBeams'           : 16,
+                                     'vFoV'             : 0.2617993878,
+                                     'hFoV'             : 3.1415,
+                                     'robotBaseFrame'   : "velodyne_base_link",
+                                     'sensorScanFrame'  : 'velodyne_base_scan'
+                                 }])
 
-    return [world_launch, navigation2_launch, cartographer_launch, rosbridge_msgs_pub, visualize_interactive_map, publish_maps]
+
+    return [world_launch, navigation2_launch, cartographer_launch, rosbridge_msgs_pub, visualize_interactive_map, publish_maps, pointcloud_filter]
 
 def generate_launch_description():
     default_map = os.path.join(
