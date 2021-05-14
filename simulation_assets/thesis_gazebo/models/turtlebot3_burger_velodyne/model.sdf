@@ -425,7 +425,7 @@
             <frameName>velodyne_base_scan</frameName>
             <organize_cloud>false</organize_cloud>
             <min_range>0.1</min_range>
-            <max_range>10</max_range>
+            <max_range>8</max_range>
             <gaussianNoise>0.008</gaussianNoise>
           </plugin>
           

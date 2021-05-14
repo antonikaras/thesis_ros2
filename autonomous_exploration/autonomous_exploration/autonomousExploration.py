@@ -423,7 +423,7 @@ class AutonomousExploration(Node):
                     # Check if a better goal exist, only for the Entopy method
                     if method != 'near' and method != 'far':
                         if self.curTarScore > 0.01:
-                            if self.newTarScore / self.curTarScore > 2.0:
+                            if self.newTarScore / self.curTarScore > 2.5:
                                 self.get_logger().info("Found better navigation target {}".format(self.newTar))
                                 navigation_status = 2
                                 self.curTar = []

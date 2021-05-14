@@ -17,7 +17,8 @@ class PointsGroup:
         self.mapOrigin = pG.map_origin
         self.mapDims = pG.map_dims
         self.mapResolution = pG.map_resolution
-
+        self.associated_file = pG.associated_file
+        
         # Store the group related data
         self.groupID = pG.group_id
         self.numOfPoints = int(0.5 * len(pG.map_pos))

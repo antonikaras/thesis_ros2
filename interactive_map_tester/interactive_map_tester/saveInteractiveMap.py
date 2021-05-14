@@ -142,8 +142,8 @@ class SaveInteractiveMap(Node):
         # Call the map saver service
         req = SaveMap.Request()
         req.map_topic = "map"
-        req._map_url = "/home/antony/map.yaml"
-        req.image_format = "/home/antony/map.pgm"
+        req._map_url = "/home/antony/map"
+        req.image_format = "/home/antony/map"
         req.map_mode =  "trinary"
         req.free_thresh = 0.25
         req.occupied_thresh = 0.65
