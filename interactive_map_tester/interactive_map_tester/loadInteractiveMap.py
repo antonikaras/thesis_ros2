@@ -35,6 +35,9 @@ class LoadInteractiveMap(Node):
         ## Action callback group
         self.act_callback_group = ReentrantCallbackGroup()
         
+        # Declare parameters
+        self.declare_parameter("maps_folder")
+    
         # Initialize the variables
         self.bridge = CvBridge()
         qos = QoSProfile(depth=10)
@@ -42,6 +45,7 @@ class LoadInteractiveMap(Node):
         self.mapOdomOffset = []
         self.map_pos = [0, 0]
         self.pointGroups = PointGroups()
+        self.maps_folder = self.get_parameter("maps_folder").value + '/'
 
         # Create subscribers
         # /odom
@@ -113,7 +117,9 @@ class LoadInteractiveMap(Node):
         self.resolution = 0.0
         self.map_origin = []
         map = []
-        with open(r'/home/antony/map.yaml') as file:
+        fl = self.maps_folder + "map.yaml"
+
+        with open(fl) as file:
             documents = yaml.full_load(file)
             for item, doc in documents.items():
                 if item == 'resolution':
@@ -134,7 +140,7 @@ class LoadInteractiveMap(Node):
                     self.map_origin[0:3] = doc
         
         # Load the interactive map
-        self.interactiveMap = cv.imread("/home/antony/interactive_map.pgm", -1)
+        self.interactiveMap = cv.imread(self.maps_folder + "interactive_map.pgm", -1)
         self.interactiveMap = self.interactiveMap.flatten()
 
         # Create the interactive colorful map
@@ -155,7 +161,8 @@ class LoadInteractiveMap(Node):
         self.interactiveMapColor = np.reshape(self.interactiveMapColor, (self.width, self.height, 3))
         
         # Load the point groups
-        with open(r'/home/antony/point_groups.yaml') as file:
+        fl = self.maps_folder + "point_groups.yaml"
+        with open(fl) as file:
             groups = yaml.full_load(file)
             for group in groups:
                 pg = PointGroup()
@@ -174,7 +181,7 @@ class LoadInteractiveMap(Node):
         
         # Call the load map service
         req = LoadMap.Request()
-        req._map_url = "/home/antony/map.yaml"
+        req._map_url = self.maps_folder + "map.yaml"
         fut = self.loadMap_srv.call_async(req)
         '''
         if fut.done():
