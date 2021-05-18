@@ -124,7 +124,7 @@ source devel/setup.bash
 
 * Save the maps :
     ```
-        ros2 run interactive_map_tester saveInteactiveMap
+        ros2 run interactive_map_tester saveInteactiveMap --ros-args -p maps_folder:=/home/antony/colcon_ws/src/thesis_ros2/maps/new_house 
     ```
 
 ### Use the interactive map to move around
@@ -133,7 +133,7 @@ source devel/setup.bash
 ```
     cd ~/colcon_ws/
     source install/setup.bash
-    ros2 launch interactive_map_tester launchInteractiveMapTester.launch.py
+    ros2 launch interactive_map_tester launchInteractiveMapTester.launch.py maps_folder:=/home/antony/colcon_ws/src/thesis_ros2/maps
 ```
 
 ## Transport additional messages between ROS2 and ROS

@@ -21,7 +21,10 @@ class SaveInteractiveMap(Node):
 
     def __init__(self):
 
-        super().__init__("visualize_interactive_map")
+        super().__init__("save_interactive_map")
+
+        # Declare parameters
+        self.declare_parameter("maps_folder")
 
         # Initialize the variables
         qos = QoSProfile(depth=10)
@@ -30,6 +33,8 @@ class SaveInteractiveMap(Node):
         self.mapsSaved = False
         self.pointGroupsReceived = False
         self.pointGroupsDict = []
+        self.maps_folder = self.get_parameter("maps_folder").value + '/'
+
 
         # Create subscribers
         # /map
@@ -132,18 +137,19 @@ class SaveInteractiveMap(Node):
         interactiveMap = interactiveMap.astype(np.uint8)
         
         # Save the maps
-        cv.imwrite('/home/antony/interactive_map.pgm', interactiveMap)
-        cv.imwrite('/home/antony/interactive_map_color.jpg', map_img)
+        cv.imwrite(self.maps_folder + 'interactive_map.pgm', interactiveMap)
+        cv.imwrite(self.maps_folder + 'interactive_map_color.png', map_img)
 
         # Save the group point as a .yaml file
-        with open(r'/home/antony/point_groups.yaml', 'w') as file :
+        fl = self.maps_folder + "point_groups.yaml"
+        with open(fl, 'w') as file :
             doc = yaml.dump(self.pointGroupsDict, file)
         
         # Call the map saver service
         req = SaveMap.Request()
         req.map_topic = "map"
-        req._map_url = "/home/antony/map"
-        req.image_format = "/home/antony/map"
+        req._map_url = self.maps_folder + "map"
+        req.image_format = self.maps_folder + "map"
         req.map_mode =  "trinary"
         req.free_thresh = 0.25
         req.occupied_thresh = 0.65

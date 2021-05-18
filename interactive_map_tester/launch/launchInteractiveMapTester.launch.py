@@ -10,7 +10,7 @@ from launch_ros.actions import Node
 def launch_setup(context, *args, **kwargs):
 
     # Define input variables
-    map = LaunchConfiguration('map')
+    maps_folder = LaunchConfiguration('maps_folder').perform(context) + '/'
     use_sim_time = LaunchConfiguration('use_sim_time')
     gui = LaunchConfiguration('gui')
     turtlebot3_model = LaunchConfiguration('turtlebot3_model').perform(context)
@@ -41,7 +41,8 @@ def launch_setup(context, *args, **kwargs):
     
     # Start publishing the maps
     publish_maps = Node(package='interactive_map_tester',
-                        executable='loadInteactiveMap')
+                        executable='loadInteactiveMap',
+                        parameters=[{"maps_folder" : maps_folder + world}])
     
     # Start the interactive_map_visualization node
     visualize_interactive_map = Node(package='interactive_map_tester',
@@ -81,6 +82,7 @@ def generate_launch_description():
             'turtlebot3_world.yaml')
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument('maps_folder', default_value='/home/antony/colcon_ws/src/thesis_ros2/maps'),
         DeclareLaunchArgument('nav2_parms',default_value='burger', description="name of the nav2 params"),
         DeclareLaunchArgument('turtlebot3_model', default_value='burger'),
         DeclareLaunchArgument('world', default_value='new_house'),
