@@ -1,1 +1,0 @@
-/workspace/colcon_ws/src/turtlebot3/DynamixelSDK/dynamixel_sdk/include/dynamixel_sdk/protocol2_packet_handler.h
