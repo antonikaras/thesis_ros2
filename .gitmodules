@@ -18,3 +18,6 @@
 	path = docker-workspace/colcon_ws/src/turtlebot3/hls_lfcd_lds_driver
 	url = https://github.com/ROBOTIS-GIT/hls_lfcd_lds_driver.git
 	branch = foxy-devel
+[submodule "docker-workspace/colcon_ws/src/thesis_ros2"]
+	path = docker-workspace/colcon_ws/src/thesis_ros2
+	url = https://github.com/antonikaras/thesis_ros2.git

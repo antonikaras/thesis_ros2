@@ -20,8 +20,14 @@ RUN apt-get update && apt-get install -y \
     ros-foxy-cartographer-ros \
     ros-foxy-navigation2 \
     ros-foxy-nav2-bringup \
-    ros-foxy-gazebo-ros-pkgs 
+    ros-foxy-gazebo-ros-pkgs \
+    ros-foxy-cv-bridge \
+    ros-foxy-vision-opencv \
+    ros-foxy-pointcloud-to-laserscan \
+    python3-pip \
+    nano 
 
+RUN pip3 install opencv-python
 RUN apt-get install python3-scipy -y
 
 RUN apt-get update && apt-get upgrade -y
