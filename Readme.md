@@ -30,5 +30,5 @@ bt-ws
 ```
 * Change the permissions on the colcon_ws
 ```
-sudo chown -R $USER build/ install/ log/
+sudo chown -R $USER docker-workspace
 ```
