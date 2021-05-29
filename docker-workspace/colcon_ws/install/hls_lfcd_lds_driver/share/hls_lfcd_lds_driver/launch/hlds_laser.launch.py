@@ -1,1 +1,0 @@
-/workspace/colcon_ws/src/turtlebot3/hls_lfcd_lds_driver/launch/hlds_laser.launch.py
