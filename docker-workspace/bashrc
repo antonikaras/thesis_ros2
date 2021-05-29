@@ -1,0 +1,8 @@
+source /workspace/colcon_ws/install/setup.bash
+source /opt/ros/foxy/setup.bash
+
+alias src2="source /workspace/colcon_ws/install/setup.bash"
+alias cws="cd /workspace/colcon_ws"
+alias bws="cws && colcon build --symlink-install && src2"
+
+alias killgazebo="pkill -9 gazebo & pkill -9 gzserver & pkill -9 gzclient & pkill -9 gazebo_gui"
