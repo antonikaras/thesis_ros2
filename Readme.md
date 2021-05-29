@@ -21,12 +21,13 @@ docker system prune
 * Terminal 1
 ```
 ./run-docker-image-gpu.sh
-bt-ws
+bws
 ```
 * Terminal 2
 ```
 docker exec -it thesis_ros2-tester bash
-bt-ws
+cws
+src2
 ```
 * Change the permissions on the colcon_ws
 ```
