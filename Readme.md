@@ -75,10 +75,6 @@ source devel/setup.bash
 * pointcloud2_filter:
     1. Creates a particle filter that filters the rays that touch the ground
     2. Developed using : ```https://github.com/ros-perception/perception_pcl/issues/323 ```
-    
-    [TODO] i.  Contains a demo using the interactive map
-    
-    [TODO] ii. Add map save/load path as input
 
 
 ## Launch the simulation
@@ -164,8 +160,7 @@ instructed the rosbridge to transport it from ROS2 to ROS1 and vice-versa
 * Save the map :
     ``` ros2 run nav2_map_server map_saver_cli -f ~/map --ros-args --remap map:=/map ```
 * Save the interactive map
-    ``` ros2 run nav2_map_server map_saver_cli -f ~/interactive_map --ros-args --remap map:=/interactive_map/map ```
-    
+    ``` ros2 run nav2_map_server map_saver_cli -f ~/interactive_map --ros-args --remap map:=/interactive_map/map ``` 
 * Load the maps
     ``` ros2 service call /map_server/load_map nav2_msgs/srv/LoadMap "{map_url: /ros/maps/map.yaml}" ```
 

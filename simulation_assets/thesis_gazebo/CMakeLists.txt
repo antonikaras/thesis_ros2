@@ -34,9 +34,9 @@ find_package(turtlebot3 REQUIRED)
 ################################################################################
 # Build
 ################################################################################
-include_directories(
-  include
-)
+#include_directories(
+#  include
+#)
 
 set(dependencies
   "rclcpp"
@@ -49,14 +49,14 @@ install(DIRECTORY launch models worlds
   DESTINATION share/${PROJECT_NAME}/
 )
 
-install(DIRECTORY include/
-  DESTINATION include/
-)
+#install(DIRECTORY include/
+#  DESTINATION include/
+#)
 
 ################################################################################
 # Macro for ament package
 ################################################################################
-ament_export_include_directories(include)
+#ament_export_include_directories(include)
 ament_export_dependencies(gazebo_ros_pkgs)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(turtlebot3)

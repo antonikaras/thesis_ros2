@@ -331,7 +331,7 @@
     <link name="velodyne_base_link">
       <pose>-0.02 0 0.19085 0 0 0</pose>
       <inertial>
-        <mass>0.83</mass>
+        <mass>0.083</mass>
         <inertia>
           <ixx>0.000908059</ixx>
           <iyy>0.000908059</iyy>

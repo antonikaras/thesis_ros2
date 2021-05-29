@@ -20,10 +20,8 @@ def launch_setup(context, *args, **kwargs):
     models_dir = os.path.join(get_package_share_directory('thesis_gazebo'), 'models')
     os.environ["TURTLEBOT3_MODEL"] = turtlebot3_model
     env1 = os.path.join(models_dir, 'factory', 'models') + ":"
-    env2 = os.path.join(models_dir, 'hospital', 'models') + ":"
-    env3 = os.path.join(models_dir, 'hospital', 'fuel_models') + ":"
 
-    os.environ["GAZEBO_MODEL_PATH"] = env1 + env2 + env3 + "$GAZEBO_MODEL_PATH"
+    os.environ["GAZEBO_MODEL_PATH"] = env1 + "$GAZEBO_MODEL_PATH"
     print(os.getenv("GAZEBO_MODEL_PATH"))
     
     # Robot state publisher

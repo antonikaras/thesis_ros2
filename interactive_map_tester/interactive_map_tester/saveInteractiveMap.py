@@ -55,7 +55,7 @@ class SaveInteractiveMap(Node):
             self.get_logger().warn('SaveMap service not available')
 
         # Create a timer to store the interactive map
-        self.create_timer(2.0, self.saveMaps)  # unit: s
+        self.create_timer(5.0, self.saveMaps)  # unit: s
 
         self.get_logger().info("Interactive map saver was initiated")
     
@@ -106,6 +106,12 @@ class SaveInteractiveMap(Node):
         ''' Once both maps received store the interactive map as an image'''
         
         if not(self.mapReceived and self.interMapReceived and self.pointGroupsReceived and not self.mapsSaved):
+            if not(self.mapReceived):
+                self.get_logger().info("Waiting for map")
+            if not(self.pointGroupsReceived):
+                self.get_logger().info("Waiting for pointGroups")
+            if not(self.interMapReceived):
+                self.get_logger().info("Waiting for interactiveMap")
             return
 
         map = np.array(self.map).copy()
