@@ -21,7 +21,7 @@ def launch_setup(context, *args, **kwargs):
     os.environ["TURTLEBOT3_MODEL"] = turtlebot3_model
     env1 = os.path.join(models_dir, 'factory', 'models') + ":"
 
-    os.environ["GAZEBO_MODEL_PATH"] = env1 + "$GAZEBO_MODEL_PATH"
+    os.environ["GAZEBO_MODEL_PATH"] = models_dir + ":" + env1 + "$GAZEBO_MODEL_PATH"
     print(os.getenv("GAZEBO_MODEL_PATH"))
     
     # Robot state publisher
